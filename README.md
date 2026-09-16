@@ -17,10 +17,15 @@ University course project (SIS & TSIS).
 Requires Node >= 20, [pnpm](https://pnpm.io) >= 10 and [uv](https://docs.astral.sh/uv/).
 
 ```bash
-pnpm install          # node deps for the workspace
+pnpm install              # node deps for the workspace
 pnpm --filter api setup   # python venv for the backend (uv sync)
-pnpm dev              # starts BOTH apps
+cp apps/api/.env.example apps/api/.env   # then fill in Supabase credentials
+pnpm dev                  # starts BOTH apps
 ```
+
+The `.env` step is optional to get running: without credentials the API starts and
+reports `supabase: not configured`, and Supabase-backed routes return 503 with an
+explanation instead of crashing.
 
 `pnpm dev` runs the frontend and backend together:
 

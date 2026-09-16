@@ -21,8 +21,14 @@ the prior research is preserved in git at tag `archive/taplink-2026-09-16` and i
 - Frontend: **Vite + React** (Zere)
 - Backend: **FastAPI** (Altair)
 
-Supersedes the Next.js + Supabase line from the planning chat. Still open: the persistence / auth
-layer and where FastAPI is hosted — Vercel covers the Vite build but not a Python service.
+- Data / auth / storage: **Supabase** (Postgres), reached from FastAPI
+
+Supersedes the Next.js + Supabase line from the planning chat — Supabase stays, Next.js does not.
+The backend holds the **service role key**, which bypasses row-level security: server-side only,
+never sent to the browser. Credentials live in `apps/api/.env` (gitignored); see `.env.example`.
+They are optional — without them the API still starts and reports `supabase: not configured`.
+
+Still open: where FastAPI is hosted. Vercel covers the Vite build but will not run a Python service.
 
 ## Done-means
 Answers every clause of the syllabus task line, in English, every factual claim sourced, and internally

@@ -108,6 +108,6 @@ must answer, per Done-means) were never posted to the chat and are still needed.
 | Q1 | Full syllabus task lines for Assignments 1–3 | Altair |
 | Q2 | Explicit stakeholder groups (residents / УК / technicians / developer?) | Altair + Zere |
 | Q3 | ~~Is the stack frozen?~~ **RESOLVED 2026-09-16: Vite + React + FastAPI.** | closed |
-| Q5 | Persistence + auth layer is now unspecified. Week 4 says "db buckets", which is Supabase wording — is Supabase still the DB/auth/storage layer behind FastAPI, or is it plain Postgres? | Altair |
+| Q5 | ~~Persistence + auth layer unspecified.~~ **RESOLVED 2026-09-16: Supabase** (Postgres + Auth + Storage) behind FastAPI. | closed |
 | Q6 | Deployment: Vercel hosts the Vite build, but not a FastAPI service. Where does the backend run (Render / Railway / Fly / Vercel Python functions)? | Altair |
 | Q4 | Does the product handle utility payments? Never mentioned in the session, but it is the obvious ЖК revenue hook and would change the architecture substantially. | Altair |

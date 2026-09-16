@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import './App.css'
 
-type Health = { status: string; service: string }
+type Health = { status: string; service: string; supabase: string }
 
 type State =
   | { kind: 'loading' }
@@ -36,10 +36,22 @@ function App() {
         <h2>Backend</h2>
         {state.kind === 'loading' && <p>Checking API…</p>}
         {state.kind === 'ok' && (
-          <p>
-            Connected to <code>{state.health.service}</code> — status{' '}
-            <strong>{state.health.status}</strong>
-          </p>
+          <>
+            <p>
+              Connected to <code>{state.health.service}</code> — status{' '}
+              <strong>{state.health.status}</strong>
+            </p>
+            <p>
+              Supabase: <strong>{state.health.supabase}</strong>
+              {state.health.supabase !== 'configured' && (
+                <>
+                  <br />
+                  Copy <code>apps/api/.env.example</code> to <code>apps/api/.env</code> and fill in
+                  your project credentials.
+                </>
+              )}
+            </p>
+          </>
         )}
         {state.kind === 'error' && (
           <p>
