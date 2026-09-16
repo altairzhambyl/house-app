@@ -1,4 +1,19 @@
+# agent / tooling state
 .claude/
 .ultima/
+
+# secrets
 *.env
 .env*
+!.env.example
+
+# node
+node_modules/
+dist/
+.vite/
+
+# python
+.venv/
+__pycache__/
+*.py[cod]
+.ruff_cache/

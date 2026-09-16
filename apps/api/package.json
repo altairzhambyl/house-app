@@ -1,0 +1,10 @@
+{
+  "name": "api",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000",
+    "setup": "uv sync",
+    "check": "uv run ruff check ."
+  }
+}
