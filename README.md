@@ -12,8 +12,44 @@ University course project (SIS & TSIS).
 | Backend | FastAPI — Altair Zhambyl |
 | Tracking | Linear — workspace `itpm-houseapp`, team `ITP` |
 
-- `docs/sis/` — course deliverables (English)
-- `docs/research/` — raw research and source records
-- `bash scripts/verify.sh` — checks deliverables exist, are complete and in English
+## Getting started
+
+Requires Node >= 20, [pnpm](https://pnpm.io) >= 10 and [uv](https://docs.astral.sh/uv/).
+
+```bash
+pnpm install          # node deps for the workspace
+pnpm --filter api setup   # python venv for the backend (uv sync)
+pnpm dev              # starts BOTH apps
+```
+
+`pnpm dev` runs the frontend and backend together:
+
+| App | URL | Notes |
+|---|---|---|
+| web | http://localhost:5173 | Vite dev server |
+| api | http://localhost:8000 | FastAPI, `--reload`; docs at `/docs` |
+
+The frontend proxies `/api/*` to the backend, so the browser only ever talks to
+one origin and CORS is not involved in development.
+
+> Vite binds to IPv6 loopback (`[::1]`). Use `localhost`, not `127.0.0.1`, when
+> curling the frontend or writing test scripts.
+
+## Layout
+
+| Path | |
+|---|---|
+| `apps/web/` | Vite + React + TypeScript |
+| `apps/api/` | FastAPI (uv-managed; `pyproject.toml` is the real manifest — `package.json` only exists so pnpm can start it) |
+| `docs/sis/` | course deliverables (English) |
+| `docs/research/` | raw research and source records |
+
+## Verify
+
+```bash
+bash scripts/verify.sh        # docs + code
+bash scripts/verify.sh code   # frontend typecheck + backend lint
+bash scripts/verify.sh docs   # deliverables present, complete, English-only
+```
 
 See `CLAUDE.md` for project constraints.
