@@ -125,6 +125,11 @@ Kept verbatim (Russian) alongside the English statement so nothing is lost in tr
 | F5 emergency alerts | P20 P21 P22 | solid |
 | **— none —** | **P23–P28 (money), P29–P31 (voting), P32–P33 (access), P37–P40 (management ops), P41–P43 (landlord)** | **gap** |
 
+> **Updated 2026-09-16, after this analysis.** The team brought **voting (P29–P31)** and
+> **contribution collection (P23–P28)** into the MVP in response to the gap identified below. Those
+> two rows are no longer gaps. Access control, management-operations tooling and the landlord case
+> remain uncovered.
+
 **The gap is the finding.** F1–F5 is a complete communication product and an empty
 property-management product. Five themes with eighteen problems have no feature at all — and two of
 them (money, collective decisions) are where the buyer's own obligations sit.
