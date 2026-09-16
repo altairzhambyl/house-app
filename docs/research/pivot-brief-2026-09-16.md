@@ -65,8 +65,10 @@ Altair additionally carries PM/analyst work in practice.
 - Claude Code; Vercel for deployment; GitHub repository to be initialized.
 - Stack discussed as **Next.js + Supabase** on freemium tiers (13:59). FastAPI was mentioned at 13:53
   and not carried forward.
-- **Caveat:** the Next.js+Supabase line was said at 13:59, *before* the 14:22 pivot to the ЖК app, and
-  week 3 lists "develop technical stack" as an open task. Treat the stack as **proposed, not frozen**.
+- **SUPERSEDED (2026-09-16, later same day):** the team agreed on **Vite + React (frontend) +
+  FastAPI (backend)**. The 13:59 Next.js+Supabase line is void — it was chosen before the 14:22 pivot,
+  for a different product. FastAPI returns to the stack after all (it was in Altair's original 13:53
+  list). This record is left intact as the session transcript; `CLAUDE.md` holds the current stack.
 
 ## 6. Assignments named by the team
 
@@ -105,5 +107,7 @@ must answer, per Done-means) were never posted to the chat and are still needed.
 |---|---|---|
 | Q1 | Full syllabus task lines for Assignments 1–3 | Altair |
 | Q2 | Explicit stakeholder groups (residents / УК / technicians / developer?) | Altair + Zere |
-| Q3 | Is the stack frozen as Next.js + Supabase, or still open? | Altair (week-3 task) |
+| Q3 | ~~Is the stack frozen?~~ **RESOLVED 2026-09-16: Vite + React + FastAPI.** | closed |
+| Q5 | Persistence + auth layer is now unspecified. Week 4 says "db buckets", which is Supabase wording — is Supabase still the DB/auth/storage layer behind FastAPI, or is it plain Postgres? | Altair |
+| Q6 | Deployment: Vercel hosts the Vite build, but not a FastAPI service. Where does the backend run (Render / Railway / Fly / Vercel Python functions)? | Altair |
 | Q4 | Does the product handle utility payments? Never mentioned in the session, but it is the obvious ЖК revenue hook and would change the architecture substantially. | Altair |

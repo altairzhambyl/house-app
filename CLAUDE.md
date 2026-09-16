@@ -17,8 +17,12 @@ the prior research is preserved in git at tag `archive/taplink-2026-09-16` and i
 - Deliverables in `docs/sis/` (one file per assignment); raw research in `docs/research/`.
 - Submission-length: 2–4 pages each, tables over prose.
 
-## Stack — PROPOSED, not frozen
-Next.js + Supabase (freemium tiers), Vercel deploy. Freezing the stack is itself a week-3 task.
+## Stack — DECIDED 2026-09-16
+- Frontend: **Vite + React** (Zere)
+- Backend: **FastAPI** (Altair)
+
+Supersedes the Next.js + Supabase line from the planning chat. Still open: the persistence / auth
+layer and where FastAPI is hosted — Vercel covers the Vite build but not a Python service.
 
 ## Done-means
 Answers every clause of the syllabus task line, in English, every factual claim sourced, and internally
