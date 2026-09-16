@@ -17,3 +17,7 @@ dist/
 __pycache__/
 *.py[cod]
 .ruff_cache/
+.gstack/
+
+# generated documents
+*.pdf
