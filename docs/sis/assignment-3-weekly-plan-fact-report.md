@@ -1,73 +1,74 @@
 # Assignment 3. Weekly Plan and Fact Report
 
 **Project:** house-app · **Team:** Altair Zhambyl, Zere Bayzhan
-**Process:** Agile, one-week sprints · **Tracking:** Linear, workspace `itpm-houseapp`, team `ITP`
-**Reporting date:** 2026-09-16
+**Method:** Agile, one-week sprints · **Tracking:** Linear, team `ITP`
+**Date:** 2026-09-16
 
-## 1. Week 3 — plan against fact
+## 1. Week 3 — plan and fact
 
-| # | Planned | Fact | Status | Evidence |
+| # | Plan | Fact | Status | Proof |
 |---|---|---|---|---|
-| 3.1 | Create workspace: Linear board for issue tracking, initialise GitHub repository | Linear workspace `itpm-houseapp` created with team `ITP`. Repository `altairzhambyl/house-app` created; 8 commits pushed to `main` | Done | commits `ef8dabc` to `472e863` |
-| 3.2 | Define technical requirements, database schema, architecture, technical stack | Stack fixed and recorded. Architecture built and running: one repository, two applications, a single start command. Database schema **not started** | Partially done | `2fb8410`, `8c2ebbd`, `2d99c5e` |
-| 3.3 | Primary brand design, colour scheme, UI format | Not started | Not done | — |
+| 3.1 | Set up the workspace: task board and repository | Linear board `ITP` is ready. Repository `house-app` is created. We pushed 8 commits | Done | commits `ef8dabc` to `472e863` |
+| 3.2 | Write requirements, database schema, architecture and stack | Stack is chosen. Architecture works: one repository, two applications, one start command. Database schema is **not started** | Partly done | `2fb8410`, `8c2ebbd`, `2d99c5e` |
+| 3.3 | Make brand design, colours and UI format | Not started | Not done | — |
 
-### Changes of direction during week 3
+### What we changed during the week
 
 | Change | Reason |
 |---|---|
-| Product direction replaced | The previous idea was abandoned after the team's own research established that the assumed market gap did not exist as stated. Four candidate ideas were re-evaluated and the residential-complex platform selected. |
-| Technical stack replaced | The earlier stack had been chosen for the earlier product. Reassessed against the new product and the split of team roles. |
-| Data layer decided | PostgreSQL through Supabase, providing database, authentication and file storage from one dependency. |
+| We changed the product idea | Our research showed that the market gap of the old idea was not real. We looked at four ideas again and chose the building platform |
+| We changed the technical stack | The old stack was for the old product. We chose a new one for this product and for our two roles |
+| We chose the database | PostgreSQL through Supabase. It gives database, sign-in and file storage in one service |
 
-### Unplanned work completed
+### Extra work, not in the plan
 
-| Item | Why it was done |
+| Work | Why we did it |
 |---|---|
-| Problem inventory: 43 problems mapped to 9 stakeholders | Required before Assignments 1 and 2 could be written without inventing content |
-| Verification script for coursework documents | Checks every deliverable exists, is complete and contains no untranslated text |
+| We wrote 43 problems and linked them to 9 stakeholders | Without this we could not write Assignments 1 and 2 with real content |
+| We wrote a check script for our documents | It checks that every document exists, is complete and is in English |
 
-## 2. Metrics
+## 2. Numbers
 
 | Metric | Value |
 |---|---|
-| Planned items | 3 |
-| Completed | 1 |
-| Partially completed | 1 |
+| Planned tasks | 3 |
+| Done | 1 |
+| Partly done | 1 |
 | Not started | 1 |
-| Unplanned items completed | 2 |
+| Extra tasks done | 2 |
 | Commits | 8 |
-| Blocked items | 0 |
+| Blocked tasks | 0 |
 
-**Honest assessment.** One of three planned items finished. The shortfall is explained by the change
-of product direction inside the same week, which consumed the time budgeted for design work. The
-architecture in 3.2 is further ahead than planned — both applications run and communicate — while
-the database schema in the same item has not been started, because the feature list it must be
-derived from was only settled at the end of the week.
+**Our honest view.** We finished only one task of three. The reason is the change of the product
+idea in the same week. It used the time we planned for design work.
+
+Task 3.2 is not simple. The architecture part is better than planned, because both applications
+already run and talk to each other. But the database schema in the same task is not started. We
+could only start it after we agreed the feature list at the end of the week.
 
 ## 3. Week 4 — plan
 
 | # | Task | Owner | Done when |
 |---|---|---|---|
-| 4.1 | Database schema for buildings, units, residents, requests, announcements | Altair | Tables created in Supabase; a request can be stored and read back |
-| 4.2 | Authentication and authorisation | Altair | A resident signs in and sees only their own building |
-| 4.3 | File storage for request photographs | Altair | An image uploads and displays against a request |
-| 4.4 | Brand design, colour scheme, UI format — carried over from 3.3 | Zere | Palette, typography and component style agreed |
-| 4.5 | Frontend: request list and request detail | Zere | Both screens render live data from the backend |
+| 4.1 | Database schema: buildings, flats, residents, requests, news | Altair | Tables exist. We can save a request and read it back |
+| 4.2 | Sign-in and access rights | Altair | A resident signs in and sees only their building |
+| 4.3 | File storage for request photos | Altair | An image uploads and shows on a request |
+| 4.4 | Brand design, colours, UI format (moved from 3.3) | Zere | Colours, fonts and component style are agreed |
+| 4.5 | Screens: request list and one request | Zere | Both screens show real data from the backend |
 
 ### Risks
 
-| Risk | Mitigation |
+| Risk | What we do |
 |---|---|
-| 3.3 carried into week 4 alongside new design work | 4.4 is scheduled first in the week, before 4.5 depends on it |
-| Schema 4.1 blocks frontend 4.5 | 4.1 is scheduled first; the frontend can work against fixed sample data if it slips |
-| Competing products have not been researched for this idea | Scheduled as a week 5 item, before any market claim is made in a submission |
+| Task 3.3 moves into week 4 with new design work | We do 4.4 first, because 4.5 needs it |
+| Task 4.5 waits for the schema 4.1 | We do 4.1 first. If it is late, the frontend uses test data |
+| We did not study other products for this idea | We plan it for week 5, before we write anything about the market |
 
-## 4. Week 5 — outline
+## 4. Week 5 — short plan
 
 | # | Task |
 |---|---|
-| 5.1 | Research existing products in this market and document findings with sources |
-| 5.2 | Validation interviews with residents and management staff |
-| 5.3 | Announcements and emergency broadcast |
-| 5.4 | Deploy a running version and record measured results against this plan |
+| 5.1 | Study other products on this market and write the results with sources |
+| 5.2 | Interview residents and management staff |
+| 5.3 | Build news and emergency alerts |
+| 5.4 | Deploy a working version and compare the result with this plan |

@@ -56,12 +56,12 @@ check_docs() {
   fi
 
   echo "== unresolved markers =="
-  if grep -rnE '\b(TODO|TBD|FIXME|XXX)\b' docs/sis 2>/dev/null; then
+  if grep -rnE --include='*.md' '\b(TODO|TBD|FIXME|XXX)\b' docs/sis 2>/dev/null; then
     note "unresolved markers found above"; fail=1
   else note "none"; fi
 
   echo "== English-only check (submissions) =="
-  if grep -rnP '[\x{0400}-\x{04FF}]' docs/sis 2>/dev/null; then
+  if grep -rnP --include='*.md' '[\x{0400}-\x{04FF}]' docs/sis 2>/dev/null; then
     note "Cyrillic found in a submission document (must be English)"; fail=1
   else note "clean"; fi
 }

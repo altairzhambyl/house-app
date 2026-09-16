@@ -7,102 +7,110 @@
 
 **Project name:** house-app
 
-**Problem.** A residential complex is coordinated through an ad-hoc messaging group. A new resident
-must find someone and ask to be added, so the channel is not discoverable. Management announcements
-are buried under unrelated conversation, and planned water or power shutdowns often go unannounced.
-When something breaks, ten neighbours report the same fault separately, management spends effort
-separating duplicates, and nobody can see whether the problem is being worked on. Owners who rent
-their units out pay the service fee but belong to no chat and learn nothing about the building.
+**Problem.** People in a residential building use a WhatsApp group to talk to the management
+company. This does not work well.
 
-**Proposed solution.** A web platform replacing the messaging group with a channel tied to the
-building. Residents verify against their unit and get access without asking anyone. Faults become
-requests with a photo, an owner and a status, so duplicates merge and progress is visible.
-Management announces planned works and emergencies through one entry point that reaches every unit,
-holds votes on collective decisions, and collects contributions for agreed works.
+A new resident cannot join alone. They must find a person and ask to be added. Important news is
+lost between other messages. The company often does not say when water or power will be off.
 
-**Target audience.** Management companies operating residential complexes in Kazakhstan are the
-paying customer; residents, owner-landlords, tenants and technicians are the users.
+When something breaks, many people report the same thing. For example, the lift stops working. Ten
+neighbours write about it. The company reads the same problem ten times. Nobody can see if someone
+is fixing it. Owners who rent out their flat pay the monthly fee, but they are not in the chat, so
+they know nothing about their building.
 
-**Expected deliverable (MVP).** A deployed web application in which a resident joins by verifying
-against a unit, files a fault request with a photo and follows its status, and management issues an
-announcement that reaches the whole building. Scope is bound by the three project constraints of
-time, cost and scope (Meredith & Mantel, ch. 1, pp. 4-6).
+**Solution.** We build a web platform for one building. It replaces the chat group.
+
+A resident signs in and proves they live in a flat. Then they get access. A problem becomes a
+request with a photo, a place and a short text. If ten people report the same lift, the system joins
+these reports into one request. Everyone sees the status: new, in work, or done.
+
+The company sends news and emergency alerts from one place, and it reaches every flat. The company
+can also start a vote and collect money for agreed work.
+
+**Target audience.** Management companies of residential buildings in Kazakhstan pay for the
+product. Residents, owners, tenants and technicians use it.
+
+**Expected deliverable (MVP).** A working web application. A resident can sign in, send a request
+with a photo, and see its status. The company can send news to the whole building.
+
+A project has three limits: time, cost and scope (Meredith & Mantel, ch. 1, pp. 4-6). We keep the
+scope small to finish in one semester.
 
 ## 2. RACI Matrix
 
-Built over the WBS and using the four roles defined in Meredith & Mantel, ch. 6, section 6.3,
-pp. 240-242: **R**esponsible does the work, **A**ccountable approves and answers for the result,
-**C**onsult is agreed with beforehand, **I**nform is notified. Exactly one A per task.
+We use four letters from Meredith & Mantel, ch. 6, section 6.3, pp. 240-242. **R** (Responsible)
+does the work. **A** (Accountable) approves it and answers for the result — only one A per task.
+**C** (Consult) is asked before we start. **I** (Inform) is told about the result.
 
-**Roles.** PM, BE (backend) and QA - Altair Zhambyl. FE (frontend) and UX - Zere Bayzhan.
-SPON (sponsor) - course instructor. Two members hold several roles each.
+**Roles.** PM, BE (backend) and QA — Altair Zhambyl. FE (frontend) and UX — Zere Bayzhan.
+SPON (sponsor) — course instructor. We are two people, so each person has more than one role.
 
 | # | Task / Activity | PM | BE | FE | UX | QA | SPON |
 |---|---|---|---|---|---|---|---|
 | 1 | Define scope and MVP | **A** | C | C | C | I | C |
-| 2 | Stakeholder interviews | **A**/R | C | I | C | I | I |
-| 3 | Competitor research | **A**/R | I | I | C | I | I |
-| 4 | Requirements and feature list | **A** | C | C | C | C | C |
-| 5 | Database schema design | C | **A**/R | C | I | C | I |
-| 6 | Set up repository, tracking, deployment | C | **A**/R | C | I | I | I |
-| 7 | Brand, colour scheme, wireframes | I | I | C | **A**/R | I | C |
-| 8 | Authentication and authorisation | I | **A**/R | C | I | C | I |
-| 9 | Fault requests with photo and status | C | **A**/R | C | C | C | I |
-| 10 | Frontend request screens | C | C | **A**/R | C | C | I |
-| 11 | Test MVP and fix defects | C | C | C | I | **A**/R | I |
-| 12 | Demo and course artefacts | **A**/R | C | C | C | I | I |
+| 2 | Interview residents and staff | **A**/R | C | I | C | I | I |
+| 3 | Study other products on the market | **A**/R | I | I | C | I | I |
+| 4 | Write requirements and feature list | **A** | C | C | C | C | C |
+| 5 | Design the database | C | **A**/R | C | I | C | I |
+| 6 | Set up repository and task board | C | **A**/R | C | I | I | I |
+| 7 | Make brand, colours and screens | I | I | C | **A**/R | I | C |
+| 8 | Build sign-in and access rights | I | **A**/R | C | I | C | I |
+| 9 | Build requests with photo and status | C | **A**/R | C | C | C | I |
+| 10 | Build the request screens | C | C | **A**/R | C | C | I |
+| 11 | Test the MVP and fix bugs | C | C | C | I | **A**/R | I |
+| 12 | Prepare demo and course documents | **A**/R | C | C | C | I | I |
 
-*A/R = the same role both executes and approves.*
+*A/R means the same role does the work and approves it.*
 
 ## 3. List of Stakeholder's Expectations
 
-Grouped by the four parties-at-interest defined in Meredith & Mantel, ch. 1, p. 13: client, parent
-organization, project team and the public. Each group defines success differently, so the table
-records how each expectation will be managed rather than merely stating it.
+Meredith & Mantel, ch. 1, p. 13, name four groups: client, parent organization, project team and
+the public. Each group sees success in its own way. For example, the company wants less work, but
+residents want fast answers. So we also write how we will manage each expectation.
 
 | Stakeholder | Group | Expectation | Priority | How we manage it |
 |---|---|---|---|---|
-| Management company | Client (buyer) | Each fault once, not ten times; a defensible record | High | Duplicates merge; every request keeps a timestamped history |
-| Residents | Client (user) | Reach management unaided; see if work is happening | High | Unit verification grants access; status on every request |
-| Owner-landlords | Client (user) | See a building they pay for but do not live in | Medium | Access tied to the unit, not chat membership |
-| Technicians | Client (user) | Fix the fault on the first visit | Medium | Photo, location and description before dispatch |
-| Course instructor | Parent org (sponsor) | Artefacts on time; methodology shown | High | Weekly plan-and-fact report; one-week sprints |
-| Project team | Project team | Even workload; clear ownership | High | One accountable role per task; weekly planning |
-| Utility providers | Public | Publish an outage once, reach everyone | Low | One announcement entry point per building |
+| Management company | Client (buyer) | Get one report per problem, not ten. Have proof of the work | High | Same reports join into one request. Each request saves its history |
+| Residents | Client (user) | Join without asking a person. See if someone is fixing the problem | High | Sign-in by flat. Status on every request |
+| Owner-landlords | Client (user) | Know what happens in the building they pay for | Medium | Access belongs to the flat, not to the chat |
+| Technicians | Client (user) | Fix the problem on the first visit | Medium | Photo, place and text come with the request |
+| Course instructor | Parent org (sponsor) | Get documents on time. See that we use the method | High | Weekly plan and fact report. One-week sprints |
+| Project team | Project team | Equal work. Clear owner for each task | High | One A per task in RACI. Planning every week |
+| Utility providers | Public | Announce one outage and reach all residents | Low | One place to publish news per building |
 
 ## 4. Idea List
 
 | # | Idea | Why |
 |---|---|---|
-| 1 | Building channel, notices separated from chat | Announcements are lost in chat noise |
-| 2 | Fault requests with photo, owner and status | Kills duplicates; makes progress visible |
-| 3 | Planned-works announcements (water, power, gas) | Most frequent failure of the current process |
-| 4 | Emergency broadcast to every unit | Gas, fire and flooding have no channel today |
-| 5 | Electronic voting on collective decisions | Physical meetings rarely reach quorum |
-| 6 | Collection of contributions for agreed works | Removes cash handling; total raised is visible |
-| 7 | Per-asset fault history | A lift failing repeatedly is invisible today |
-| 8 | Owner-landlord access | They pay and hold liability, served by nothing |
+| 1 | Building channel with separate official news | News is lost in normal chat messages |
+| 2 | Requests with photo, owner and status | Stops ten copies of one problem. Shows progress |
+| 3 | News about planned work (water, power, gas) | Today people find out too late |
+| 4 | Emergency alert to every flat | Gas, fire and water have no fast channel |
+| 5 | Online voting | Few people come to a real meeting |
+| 6 | Money collection for agreed work | No cash. Everyone sees the total sum |
+| 7 | Problem history for each object | Nobody sees that one lift broke five times |
+| 8 | Access for owners who rent out flats | They pay, but get nothing today |
 
 ## 5. Initial Features List
 
 | Feature | Description | Why (user value) | Priority |
 |---|---|---|---|
-| Resident sign-in | Verify against a unit | Access without asking a person | **Must** |
-| Building channel | Messages scoped to a building | One place, not scattered chats | **Must** |
-| Fault request with photo | Image, location, description | Technician arrives prepared | **Must** |
-| Request status | Open / in progress / done, timestamped | Progress visible; work provable | **Must** |
-| Announcements | Notices including planned outages | Shutdowns known in advance | **Must** |
-| Duplicate merging | Reports attach to one request | Management handles it once | **Should** |
-| Emergency broadcast | Instant alert: gas, fire, flood | Must never be missed | **Should** |
-| Complaint tracking | Visible to management only | No face-to-face confrontation | **Should** |
-| Electronic voting | Proposal, deadline, visible tally | Decisions without a gathering | **Should** |
-| Contribution collection | Request and track payment | Replaces cash; total is visible | **Should** |
-| Per-asset statistics | Failures and repair times per asset | Shows what to replace | **Could** |
-| Owner-landlord access | Grantable to a tenant, revocable | Absent owners stay informed | **Could** |
+| Sign-in by flat | Prove you live in a flat | Join without asking a person | **Must** |
+| Building channel | Messages only for one building | One place, not many chats | **Must** |
+| Request with photo | Add image, place and text | The technician comes ready | **Must** |
+| Request status | New, in work, done, with time | People see progress. Company has proof | **Must** |
+| News | Posts about planned work | People know before the water stops | **Must** |
+| Join same reports | Ten reports become one request | The company answers once | **Should** |
+| Emergency alert | Fast message: gas, fire, water | People must not miss it | **Should** |
+| Complaint about a neighbour | Only the company sees it | No direct conflict | **Should** |
+| Online vote | Question, date and open result | Decide without a meeting | **Should** |
+| Money collection | Ask and track payment | No cash. Sum is visible | **Should** |
+| Object statistics | How often each object breaks | Shows what to change | **Could** |
+| Owner access | Give access to a tenant, take it back | Owner stays informed | **Could** |
 
 ## 6. AI Disclosure
 
-Generative AI (Claude) was used for document structure, English wording, and for organising the
-team's raw problem list into the tables above. The choice of project, the stakeholder set, the
-feature list and its priorities were decided by the team. AI assistance was also used for the
-software scaffolding of the project repository, which is not part of this submission.
+We used generative AI (Claude) for the structure of this document, for English wording, and to put
+our list of problems into tables. We chose the project, the stakeholders, the features and their
+priority ourselves. We also used AI to set up the code repository. That code is not part of this
+document.
