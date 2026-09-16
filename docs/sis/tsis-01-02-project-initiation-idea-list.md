@@ -80,16 +80,14 @@ residents want fast answers. So we also write how we will manage each expectatio
 
 ## 4. Idea List
 
-| # | Idea | Why |
+| # | Idea (direction) | Why |
 |---|---|---|
-| 1 | Building channel with separate official news | News is lost in normal chat messages |
-| 2 | Requests with photo, owner and status | Stops ten copies of one problem. Shows progress |
-| 3 | News about planned work (water, power, gas) | Today people find out too late |
-| 4 | Emergency alert to every flat | Gas, fire and water have no fast channel |
-| 5 | Online voting | Few people come to a real meeting |
-| 6 | Money collection for agreed work | No cash. Everyone sees the total sum |
-| 7 | Problem history for each object | Nobody sees that one lift broke five times |
-| 8 | Access for owners who rent out flats | They pay, but get nothing today |
+| 1 | Official news channel, separate from chat, for daily news and planned work (water, power, gas) | News is lost in normal chat messages. People find out about outages too late |
+| 2 | Fault reporting with photo, owner and status | Stops ten copies of one problem. Shows progress |
+| 3 | Emergency alert to every flat | Gas, fire and water have no fast channel |
+| 4 | Collective decisions without a meeting: online voting and money collection for agreed work | Few people come to a real meeting. Cash collection has no visible total |
+| 5 | Problem history for each object (lift, pipe, entrance) | Nobody sees that one lift broke five times |
+| 6 | Access for owners who rent out flats | They pay, but get nothing today |
 
 ## 5. Initial Features List
 
