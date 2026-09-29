@@ -44,8 +44,14 @@ supabase start            # applies migrations + seed; prints local URL and keys
 supabase db reset         # re-create from migrations after editing them
 ```
 
-Put the printed `API_URL` and `SERVICE_ROLE_KEY` into `apps/api/.env` to point the
-API at it. `pnpm --filter api test` runs the backend tests against this local stack
+Put the printed `API_URL` and `SERVICE_ROLE_KEY` into `apps/api/.env`, and `API_URL`
+and `ANON_KEY` into `apps/web/.env.local` as `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`.
+The anon key is the only key the browser ever gets.
+
+Local demo accounts (seed only, password `demo-password`): `manager@demo.test` (УК of
+Demo Block A) and `resident@demo.test` (flat 14B). New users sign up and join a flat with
+its code — seed codes are listed in `supabase/seed.sql`; managers see and rotate them
+under «Квартиры и коды». `pnpm --filter api test` runs the backend tests against this local stack
 (they refuse any non-local URL and skip if it is not running).
 
 The frontend proxies `/api/*` to the backend, so the browser only ever talks to
