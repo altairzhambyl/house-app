@@ -36,12 +36,35 @@ class RequestCategory(str, Enum):
     other = "other"
 
 
-class Resident(BaseModel):
+class ResidentOut(BaseModel):
+    """The caller's profile. `building_id` fixes what they may access."""
+
     id: UUID
     building_id: UUID
+    building_name: str
     flat_id: UUID | None
+    flat_number: str | None
     full_name: str
     role: Role
+
+
+class MeOut(BaseModel):
+    user_id: UUID
+    email: str | None
+    # None: signed in, but not linked to a flat yet - the client shows "join".
+    resident: ResidentOut | None
+
+
+class JoinRequest(BaseModel):
+    code: Annotated[str, StringConstraints(max_length=64)]
+    full_name: Annotated[str, _text(100)]
+
+
+class FlatOut(BaseModel):
+    id: UUID
+    number: str
+    join_code: str
+    resident_count: int
 
 
 class RequestCreate(BaseModel):
@@ -68,9 +91,26 @@ class RequestOut(BaseModel):
     status: RequestStatus
     created_at: datetime
     updated_at: datetime
+    flat_number: str
+    author_name: str
     # Short-lived signed URL; only filled on the single-request endpoint.
     photo_url: str | None = None
     has_photo: bool = False
+
+
+class RequestEvent(BaseModel):
+    status: RequestStatus
+    at: datetime
+    actor_name: str
+
+
+class RequestDetailOut(RequestOut):
+    # Oldest first; the creation is the first entry.
+    history: list[RequestEvent]
+
+
+class StatusUpdate(BaseModel):
+    status: RequestStatus
 
 
 class AnnouncementCreate(BaseModel):
@@ -83,5 +123,19 @@ class AnnouncementOut(BaseModel):
     building_id: UUID
     author_id: UUID
     title: str
+    body: str
+    created_at: datetime
+
+
+class MessageCreate(BaseModel):
+    body: Annotated[str, _text(2000)]
+
+
+class MessageOut(BaseModel):
+    id: UUID
+    author_id: UUID
+    author_name: str
+    flat_number: str | None
+    role: Role
     body: str
     created_at: datetime

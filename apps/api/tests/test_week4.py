@@ -108,8 +108,13 @@ def test_request_list_is_paged(client: TestClient, make_account) -> None:
 def test_me_reports_building(client: TestClient, make_account) -> None:
     alice = make_account(BUILDING_A, FLAT_A_14B)
     me = client.get("/api/me", headers=alice.headers).json()
-    assert me["building_id"] == BUILDING_A
-    assert me["role"] == "resident"
+    assert me["user_id"] == alice.id
+    assert me["email"].endswith("@example.test")
+    resident = me["resident"]
+    assert resident["building_id"] == BUILDING_A
+    assert resident["building_name"] == "Demo Block A"
+    assert resident["flat_number"] == "14B"
+    assert resident["role"] == "resident"
 
 
 def test_unauthenticated_is_rejected(client: TestClient) -> None:

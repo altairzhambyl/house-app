@@ -5,9 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
-from app.deps import CurrentResident
-from app.routers import announcements, requests
-from app.schemas import Resident
+from app.routers import announcements, flats, messages, requests, residents
 from app.supabase_client import close_supabase, get_client, init_supabase
 
 
@@ -45,11 +43,8 @@ def health() -> dict[str, str]:
     }
 
 
+app.include_router(residents.router)
+app.include_router(flats.router)
 app.include_router(requests.router)
+app.include_router(messages.router)
 app.include_router(announcements.router)
-
-
-@app.get("/api/me")
-async def me(resident: CurrentResident) -> Resident:
-    """The caller's resident profile: who they are and which building they belong to."""
-    return resident

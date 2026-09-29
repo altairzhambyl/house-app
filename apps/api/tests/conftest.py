@@ -25,6 +25,8 @@ BUILDING_B = "00000000-0000-0000-0000-00000000b002"
 FLAT_A_14B = "00000000-0000-0000-0000-0000000f0141"
 FLAT_A_7A = "00000000-0000-0000-0000-0000000f0071"
 FLAT_B_22C = "00000000-0000-0000-0000-0000000f0221"
+CODE_A_14B = "HVWXA2345B"
+DEMO_PASSWORD = "demo-password"
 
 
 def _local_stack() -> dict[str, str] | None:
@@ -77,17 +79,66 @@ class Account:
     access_token: str
 
 
-@pytest.fixture(scope="session")
-def make_account(stack: dict[str, str]) -> Iterator:
-    """Create an auth user + resident row and return a signed-in Account."""
-    admin = {
+def _admin_headers(stack: dict[str, str]) -> dict[str, str]:
+    return {
         "apikey": stack["SERVICE_ROLE_KEY"],
         "Authorization": f"Bearer {stack['SERVICE_ROLE_KEY']}",
     }
+
+
+def sign_in(stack: dict[str, str], email: str, password: str) -> httpx.Response:
+    """GoTrue password grant, as the web client does it."""
+    return httpx.post(
+        f"{stack['API_URL']}/auth/v1/token",
+        params={"grant_type": "password"},
+        headers={"apikey": stack["ANON_KEY"]},
+        json={"email": email, "password": password},
+        timeout=10,
+    )
+
+
+@pytest.fixture(scope="session")
+def make_flat(stack: dict[str, str]) -> Iterator:
+    """Create a throwaway flat, so tests never rotate the seed flats' codes."""
+    admin = _admin_headers(stack)
     created: list[str] = []
     http = httpx.Client(base_url=stack["API_URL"], timeout=10)
 
-    def _make(building_id: str, flat_id: str | None, role: str = "resident") -> Account:
+    def _make(building_id: str) -> dict:
+        response = http.post(
+            "/rest/v1/flats",
+            headers={**admin, "Prefer": "return=representation"},
+            json={"building_id": building_id, "number": f"T-{uuid.uuid4().hex[:8]}"},
+        )
+        response.raise_for_status()
+        flat = response.json()[0]
+        created.append(flat["id"])
+        return flat
+
+    yield _make
+
+    # Runs after make_account's teardown (it depends on this fixture), so no
+    # resident still points at these flats.
+    if created:
+        http.delete(
+            "/rest/v1/flats", headers=admin, params={"id": f"in.({','.join(created)})"}
+        ).raise_for_status()
+    http.close()
+
+
+@pytest.fixture(scope="session")
+def make_account(stack: dict[str, str], make_flat) -> Iterator:
+    """Create an auth user + resident row and return a signed-in Account.
+
+    With building_id=None the user has no resident row: signed in, not joined.
+    """
+    admin = _admin_headers(stack)
+    created: list[str] = []
+    http = httpx.Client(base_url=stack["API_URL"], timeout=10)
+
+    def _make(
+        building_id: str | None, flat_id: str | None = None, role: str = "resident"
+    ) -> Account:
         email = f"test-{uuid.uuid4().hex[:12]}@example.test"
         password = uuid.uuid4().hex
         user = http.post(
@@ -98,6 +149,14 @@ def make_account(stack: dict[str, str]) -> Iterator:
         user.raise_for_status()
         user_id = user.json()["id"]
         created.append(user_id)
+        if building_id is not None:
+            _link(user_id, building_id, flat_id, role)
+        token = sign_in(stack, email, password)
+        token.raise_for_status()
+        access_token = token.json()["access_token"]
+        return Account(user_id, {"Authorization": f"Bearer {access_token}"}, access_token)
+
+    def _link(user_id: str, building_id: str, flat_id: str | None, role: str) -> None:
         http.post(
             "/rest/v1/residents",
             headers=admin,
@@ -109,15 +168,6 @@ def make_account(stack: dict[str, str]) -> Iterator:
                 "role": role,
             },
         ).raise_for_status()
-        token = http.post(
-            "/auth/v1/token",
-            params={"grant_type": "password"},
-            headers={"apikey": stack["ANON_KEY"]},
-            json={"email": email, "password": password},
-        )
-        token.raise_for_status()
-        access_token = token.json()["access_token"]
-        return Account(user_id, {"Authorization": f"Bearer {access_token}"}, access_token)
 
     yield _make
 
