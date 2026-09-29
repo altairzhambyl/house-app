@@ -58,7 +58,7 @@ one origin and CORS is not involved in development.
 
 | Path | |
 |---|---|
-| `apps/web/` | Vite + React + TypeScript |
+| `apps/web/` | Vite + React + TypeScript + Tailwind (Zere) |
 | `supabase/` | database schema (migrations), seed, local stack config |
 | `apps/api/` | FastAPI (uv-managed; `pyproject.toml` is the real manifest — `package.json` only exists so pnpm can start it) |
 | `docs/sis/` | course deliverables (English) |
