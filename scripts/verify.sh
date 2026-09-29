@@ -2,7 +2,7 @@
 # Single verify command for house-app.
 #   bash scripts/verify.sh         # docs + code
 #   bash scripts/verify.sh docs    # coursework deliverables only
-#   bash scripts/verify.sh code    # typecheck + lint only
+#   bash scripts/verify.sh code    # typecheck + lint + backend tests
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
@@ -83,6 +83,17 @@ check_code() {
     note "ok"
   else
     note "FAILED:"; sed 's/^/    /' /tmp/hv-ruff.log | tail -25; fail=1
+  fi
+
+  echo "== backend tests (local Supabase; skipped if not running) =="
+  # PYTHONPATH is cleared so a system-wide one (e.g. ROS) cannot inject
+  # foreign pytest plugins into the venv.
+  if [[ ! -d apps/api/.venv ]]; then
+    note "apps/api/.venv missing - see above"; fail=1
+  elif (cd apps/api && env -u PYTHONPATH uv run pytest -q -p no:warnings) >/tmp/hv-pytest.log 2>&1; then
+    note "$(tail -1 /tmp/hv-pytest.log)"
+  else
+    note "FAILED:"; sed 's/^/    /' /tmp/hv-pytest.log | tail -25; fail=1
   fi
 }
 

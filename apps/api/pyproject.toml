@@ -8,10 +8,14 @@ dependencies = [
     "uvicorn[standard]>=0.32",
     "supabase>=2.10",
     "pydantic-settings>=2.6",
+    "python-multipart>=0.0.32",
 ]
 
 [dependency-groups]
-dev = ["ruff>=0.8"]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.8",
+]
 
 [tool.uv]
 # An application, not a distributable package - do not try to build it.

@@ -4,6 +4,7 @@ from fastapi import Depends, Header, HTTPException, status
 from supabase import AsyncClient, AuthError
 from supabase_auth.types import User
 
+from app.schemas import Resident
 from app.supabase_client import get_client
 
 
@@ -53,3 +54,27 @@ async def get_current_user(
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+async def get_current_resident(supabase: SupabaseDep, user: CurrentUser) -> Resident:
+    """The caller's resident profile, which fixes the building they may access.
+
+    The service role key bypasses row-level security, so every building-scoped
+    query in this API must filter by `resident.building_id` from here.
+    """
+    response = (
+        await supabase.table("residents")
+        .select("id, building_id, flat_id, full_name, role")
+        .eq("id", user.id)
+        .maybe_single()
+        .execute()
+    )
+    if response is None or response.data is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This account is not linked to a building yet",
+        )
+    return Resident.model_validate(response.data)
+
+
+CurrentResident = Annotated[Resident, Depends(get_current_resident)]
