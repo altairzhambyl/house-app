@@ -5,10 +5,10 @@ role key, so this filter - not RLS - is what keeps buildings apart here.
 """
 
 import logging
-from typing import Any
+from typing import Annotated, Any
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, HTTPException, UploadFile, status
+from fastapi import APIRouter, HTTPException, Query, UploadFile, status
 from storage3.exceptions import StorageApiError
 
 from app.deps import CurrentResident, SupabaseDep
@@ -51,11 +51,47 @@ async def _get_in_building(supabase: SupabaseDep, request_id: UUID, building_id:
     return response.data
 
 
+def _own_photo_path(row: dict[str, Any]) -> str | None:
+    """The row's photo path, only if it lies under the request's own folder.
+
+    The service role can sign or delete any object, so a path pointing outside
+    <building_id>/<request_id>/ is never trusted.
+    """
+    path = row.get("photo_path")
+    if path and path.startswith(f"{row['building_id']}/{row['id']}/"):
+        return path
+    if path:
+        logger.warning("Request %s has foreign photo_path %r; ignoring it", row["id"], path)
+    return None
+
+
+async def _signed_photo_url(supabase: SupabaseDep, row: dict[str, Any]) -> str | None:
+    path = _own_photo_path(row)
+    if path is None:
+        return None
+    try:
+        signed = await supabase.storage.from_(PHOTO_BUCKET).create_signed_url(
+            path, PHOTO_URL_TTL_SECONDS
+        )
+    except StorageApiError:
+        # A missing object should not hide the request itself.
+        logger.warning("Could not sign photo %s of request %s", path, row["id"])
+        return None
+    return signed["signedURL"]
+
+
 @router.get("")
 async def list_requests(
-    supabase: SupabaseDep, resident: CurrentResident, mine: bool = False
+    supabase: SupabaseDep,
+    resident: CurrentResident,
+    mine: bool = False,
+    limit: Annotated[int, Query(ge=1, le=100)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
 ) -> list[RequestOut]:
-    """Requests of the caller's building, newest first. `mine=true` narrows to own."""
+    """Requests of the caller's building, newest first. `mine=true` narrows to own.
+
+    Paged: fetch the next page with `offset += limit` until fewer than `limit` return.
+    """
     query = (
         supabase.table("requests")
         .select(COLUMNS)
@@ -64,7 +100,7 @@ async def list_requests(
     )
     if mine:
         query = query.eq("author_id", str(resident.id))
-    response = await query.execute()
+    response = await query.range(offset, offset + limit - 1).execute()
     return [_to_out(row) for row in response.data]
 
 
@@ -98,13 +134,7 @@ async def get_request(
     request_id: UUID, supabase: SupabaseDep, resident: CurrentResident
 ) -> RequestOut:
     row = await _get_in_building(supabase, request_id, resident.building_id)
-    photo_url = None
-    if row["photo_path"]:
-        signed = await supabase.storage.from_(PHOTO_BUCKET).create_signed_url(
-            row["photo_path"], PHOTO_URL_TTL_SECONDS
-        )
-        photo_url = signed["signedURL"]
-    return _to_out(row, photo_url)
+    return _to_out(row, await _signed_photo_url(supabase, row))
 
 
 @router.put("/{request_id}/photo")
@@ -141,13 +171,12 @@ async def upload_photo(
         await supabase.table("requests").update({"photo_path": path}).eq("id", row["id"]).execute()
     )
     # The old object is unreferenced now; failing to delete it only costs storage.
-    if row["photo_path"]:
+    old_path = _own_photo_path(row)
+    if old_path:
         try:
-            await bucket.remove([row["photo_path"]])
+            await bucket.remove([old_path])
         except StorageApiError:
-            logger.warning(
-                "Could not delete replaced photo %s of request %s", row["photo_path"], row["id"]
-            )
+            logger.warning("Could not delete replaced photo %s of request %s", old_path, row["id"])
 
-    signed = await bucket.create_signed_url(path, PHOTO_URL_TTL_SECONDS)
-    return _to_out(response.data[0], signed["signedURL"])
+    updated = response.data[0]
+    return _to_out(updated, await _signed_photo_url(supabase, updated))

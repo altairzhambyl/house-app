@@ -74,6 +74,7 @@ def client(stack: dict[str, str]) -> Iterator[TestClient]:
 class Account:
     id: str
     headers: dict[str, str]
+    access_token: str
 
 
 @pytest.fixture(scope="session")
@@ -115,11 +116,32 @@ def make_account(stack: dict[str, str]) -> Iterator:
             json={"email": email, "password": password},
         )
         token.raise_for_status()
-        return Account(user_id, {"Authorization": f"Bearer {token.json()['access_token']}"})
+        access_token = token.json()["access_token"]
+        return Account(user_id, {"Authorization": f"Bearer {access_token}"}, access_token)
 
     yield _make
 
+    # Storage objects do not cascade: remove the test photos first.
+    if created:
+        photos = http.get(
+            "/rest/v1/requests",
+            headers=admin,
+            params={
+                "select": "photo_path",
+                "author_id": f"in.({','.join(created)})",
+                "photo_path": "not.is.null",
+            },
+        )
+        photos.raise_for_status()
+        paths = [row["photo_path"] for row in photos.json()]
+        if paths:
+            http.request(
+                "DELETE",
+                "/storage/v1/object/request-photos",
+                headers=admin,
+                json={"prefixes": paths},
+            ).raise_for_status()
     # Deleting the auth user cascades to residents, requests and announcements.
     for user_id in created:
-        http.delete(f"/auth/v1/admin/users/{user_id}", headers=admin)
+        http.delete(f"/auth/v1/admin/users/{user_id}", headers=admin).raise_for_status()
     http.close()

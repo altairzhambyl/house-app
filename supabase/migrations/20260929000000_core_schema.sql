@@ -134,12 +134,19 @@ create policy "residents file requests for own flat" on public.requests
     author_id = auth.uid()
     and building_id = public.current_building_id()
     and flat_id = (select flat_id from public.residents where id = auth.uid())
+    -- New requests start clean; status and photo are set by the УК / the API.
+    and status = 'pending'
+    and photo_path is null
   );
 
 create policy "managers update requests of own building" on public.requests
   for update to authenticated
   using (public.is_manager() and building_id = public.current_building_id())
   with check (building_id = public.current_building_id());
+
+-- Managers may only move a request through its workflow, not rewrite it.
+revoke update on public.requests from authenticated, anon;
+grant update (status) on public.requests to authenticated;
 
 create policy "announcements of own building" on public.announcements
   for select to authenticated using (building_id = public.current_building_id());

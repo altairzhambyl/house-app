@@ -10,7 +10,10 @@ from pydantic import BaseModel, StringConstraints, field_validator
 
 # Trimmed, non-blank text - matches the `length(trim(...)) > 0` checks in the DB.
 def _text(max_length: int) -> StringConstraints:
-    return StringConstraints(strip_whitespace=True, min_length=1, max_length=max_length)
+    # Postgres text cannot store NUL; reject it here instead of failing in the DB.
+    return StringConstraints(
+        strip_whitespace=True, min_length=1, max_length=max_length, pattern=r"^[^\x00]*$"
+    )
 
 
 class Role(str, Enum):

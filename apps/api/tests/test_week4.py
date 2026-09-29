@@ -80,6 +80,26 @@ def test_request_validation(client: TestClient, make_account) -> None:
     )
     assert empty_location.status_code == 201
     assert empty_location.json()["location"] is None
+    nul = client.post(
+        "/api/requests",
+        headers=alice.headers,
+        json={"category": "other", "description": "a\u0000b"},
+    )
+    assert nul.status_code == 422
+
+
+def test_request_list_is_paged(client: TestClient, make_account) -> None:
+    alice = make_account(BUILDING_A, FLAT_A_14B)
+    for n in range(3):
+        _file_request(client, alice.headers, f"Paged {n}")
+    params = {"mine": "true", "limit": 2}
+    first = client.get("/api/requests", headers=alice.headers, params=params).json()
+    rest = client.get("/api/requests", headers=alice.headers, params={**params, "offset": 2}).json()
+    assert len(first) == 2
+    assert len(rest) == 1
+    assert not {r["id"] for r in first} & {r["id"] for r in rest}
+    too_big = client.get("/api/requests", headers=alice.headers, params={"limit": 1000})
+    assert too_big.status_code == 422
 
 
 # --- 4.2 ------------------------------------------------------------------
@@ -115,6 +135,40 @@ def test_residents_see_only_their_building(client: TestClient, make_account) -> 
 
     # Another building's request is "not found", so its existence does not leak.
     assert client.get(f"/api/requests/{in_a['id']}", headers=outsider.headers).status_code == 404
+
+
+def test_direct_database_access_cannot_bypass_workflow(
+    client: TestClient, stack, make_account
+) -> None:
+    """RLS second line: a resident token used straight against Supabase REST."""
+    alice = make_account(BUILDING_A, FLAT_A_14B)
+    rest = httpx.Client(
+        base_url=f"{stack['API_URL']}/rest/v1",
+        headers={"apikey": stack["ANON_KEY"], "Authorization": f"Bearer {alice.access_token}"},
+    )
+    row = {
+        "building_id": BUILDING_A,
+        "flat_id": FLAT_A_14B,
+        "author_id": alice.id,
+        "category": "other",
+        "description": "direct",
+    }
+    for forged in ({"status": "done"}, {"photo_path": f"{BUILDING_B}/x/y.png"}):
+        assert rest.post("/requests", json={**row, **forged}).status_code == 403
+
+    created = _file_request(client, alice.headers, "Try to self-close")
+    changed = rest.patch(
+        "/requests",
+        params={"id": f"eq.{created['id']}"},
+        headers={"Prefer": "return=representation"},
+        json={"status": "done"},
+    )
+    assert changed.json() == []  # residents match no update policy
+    rewrite = rest.patch(
+        "/requests", params={"id": f"eq.{created['id']}"}, json={"photo_path": "x"}
+    )
+    assert rewrite.status_code in {401, 403}  # column privilege, even for managers
+    rest.close()
 
 
 def test_only_managers_post_news_and_news_is_per_building(client: TestClient, make_account) -> None:
