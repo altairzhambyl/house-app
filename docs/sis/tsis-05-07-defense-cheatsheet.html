@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>TSIS 5–7 Defense Cheatsheet — HouseApp</title>
+<style>
+@page { size: A4; margin: 11mm 10mm; }
+body { font: 9.4pt/1.32 "Inter","Segoe UI",Arial,sans-serif; color:#1a1a1a; margin:0; }
+h1 { font-size:15pt; margin:0 0 2px; }
+.sub { color:#555; font-size:8.6pt; margin-bottom:6px; }
+h2 { font-size:11pt; color:#fff; background:#1f4e79; padding:3px 7px; margin:8px 0 4px; border-radius:3px; break-after:avoid; }
+h3 { font-size:9.8pt; color:#1f4e79; margin:6px 0 2px; break-after:avoid; }
+.cols { column-count:2; column-gap:14px; }
+.box { break-inside:avoid; margin-bottom:5px; }
+table { width:100%; border-collapse:collapse; margin:3px 0 5px; break-inside:avoid; font-size:8.8pt; }
+th,td { border:1px solid #c7d3e0; padding:2px 5px; vertical-align:top; text-align:left; }
+th { background:#e8eff7; }
+.ours { color:#7a3e00; }
+.ours::before { content:"▸ Ours: "; font-weight:700; }
+.warn { background:#fff4e0; border-left:3px solid #e08a00; padding:3px 6px; margin:4px 0; break-inside:avoid; }
+ul { margin:2px 0 4px; padding-left:15px; } li { margin:1px 0; }
+b.k { color:#1f4e79; }
+.mn { font-family:monospace; background:#f1f1f1; padding:0 3px; }
+</style></head><body>
+
+<h1>TSIS 5–7 Defense Cheatsheet — HouseApp</h1>
+<div class="sub">IT Project Management (PjM 101) · Group 33 · PM: Altair Zhambyl · Zere Baizhan · Meredith &amp; Mantel Ch. 6–7 · Lectures L5–L7 · 14 Oct 2026<br>
+Questions go to the PM. Pattern for every answer: <b>definition → "in our project…"</b>. Wrong answer can be 0, no retake.</div>
+
+<div class="warn"><b>Project in one line:</b> HouseApp replaces the residential-complex WhatsApp group with one authoritative channel between residents and the management company. Sale B2B (management company / developer), use B2C (residents). Stack: Vite React + FastAPI + Supabase (Postgres). Agile, 1-week sprints. Altair — PM, backend, QA engineer; Zere — frontend, UX/UI, documentation.</div>
+
+<h2>TSIS 5 — Project Charter &amp; Force Field Analysis (3 pts)</h2>
+<div class="cols">
+<div class="box"><h3>Launch meeting</h3>Kick-off before detailed planning; senior manager present = top-management commitment (sponsor = instructor). Outputs: technical scope (not final), accepted responsibilities, tentative dates, start of risk thinking.
+<div class="ours">16 Sep 2026; roles split; Agile, 1-week sprints; MVP boundary agreed.</div></div>
+
+<div class="box"><h3>Project Charter</h3>Formal document that <b>authorizes</b> the project and the PM's authority to direct work, spend, request resources. After approval, significant scope changes need a <b>written change order</b>. <b>Charter ≠ project plan ≠ sprint backlog</b> — it is the baseline authorization; WBS/backlog come later (§6.2).</div>
+
+<div class="box"><h3>8 charter elements — "P-O-O-S-R-P-R-E"</h3>
+<table><tr><th>Element</th><th>Meaning / minimum</th></tr>
+<tr><td><b>Purpose</b></td><td>Problem, target user, why now + <b>Business Case</b> (need, market, value). <span class="ours">info scattered across chats, akimat channels, provider contacts → single source of truth.</span></td></tr>
+<tr><td><b>Objectives</b></td><td>3–5 <b>SMART</b> goals (Specific, Measurable, Achievable, Relevant, Time-bound); how the project ends.</td></tr>
+<tr><td><b>Overview</b></td><td>Managerial approach (<b>hybrid</b>: plan-driven TSIS milestones + agile sprints) + technical approach (stack) + <b>out of scope</b> (≥3).</td></tr>
+<tr><td><b>Schedules</b></td><td>Milestones, <b>phase-gates</b> (go/no-go checkpoints), sprint length, next 2 sprint goals.</td></tr>
+<tr><td><b>Resources</b></td><td>Hours/week, budget, tools/hosting, <b>change procedure</b> (who approves a new Must: PM + sponsor, in writing).</td></tr>
+<tr><td><b>Personnel</b></td><td>Names/roles, PM, sponsor, link to <b>RACI</b> (Responsible, Accountable, Consulted, Informed).</td></tr>
+<tr><td><b>Risk Mgmt Plan</b></td><td>Top-5 risks + mitigation each; threats <i>and</i> opportunities.</td></tr>
+<tr><td><b>Evaluation</b></td><td>How success is judged: demo, metrics, user test, lessons learned.</td></tr></table></div>
+
+<div class="box"><h3>Our scope &amp; risks</h3>
+<b>Must (MVP):</b> login/auth, join building by flat code, emergency &amp; outage alerts, complaints/requests with status history, residential news/building channel, community voting, multilingual UI.<br>
+<b>Out of scope:</b> payment/bank integration (only Kaspi transfer + manager phone + receipt upload), native mobile app, analytics dashboard (low). Resident chat → next sprint.<br>
+<b>Risks:</b> AI-token shortage · frontend–backend integration (medium, manageable) · 2-person team / absence · scope creep · exam load.</div>
+
+<div class="box"><h3>Scope creep</h3>Uncontrolled scope growth. Case: <b>UK Child Support Agency</b> — £456M lost, 2,500 unmanaged change requests. <span class="ours">"If it's not in prod, it shouldn't be in the spec (TZ)" — removed payment mentions to avoid contradiction.</span></div>
+
+<div class="box"><h3>Force Field Analysis (Kurt Lewin)</h3>Central <b>MVP statement</b>; <b>driving forces (+)</b> vs <b>restraining forces (−)</b>, strength 1–5; ≥4 + ≥4; ≥3 actions (owner + week). Either <b>strengthen a driver or weaken a restraint</b>. If restraints dominate → <b>narrow objectives</b>, no heroic charter. Slides: "Power Field" = political feasibility (stakeholders, influence, stance).</div>
+
+<div class="box"><h3>WBS &amp; baseline</h3><b>WBS</b>: project → major activities → tasks → subtasks → <b>work packages</b> (owner, budget, duration, predecessors). Rules: consistent granularity, delegate downward, sign-off, <b>rolling-wave planning</b> (detail near-term now). <b>Baseline</b> = signed-off plan; changes only via change order. Flow: Launch → Charter → WBS → Baseline.</div>
+
+<div class="box"><h3>Scrum basics</h3><b>PO</b> owns/prioritizes backlog · <b>Scrum Master</b> removes impediments · <b>Dev Team</b> self-organizing, cross-functional. Events: Sprint, Sprint Planning, Daily Scrum (15 min), Review + Retro. Artifacts: Product Backlog → Sprint Backlog → <b>Increment</b>.</div>
+</div>
+
+<h2>TSIS 6 — User Stories &amp; Profit Forecast (4 pts)</h2>
+<div class="cols">
+<div class="box"><h3>User story</h3><span class="mn">As a [user], I want [action], so that [benefit].</span> User's view, not a tech spec — a conversation starter. Done when the user completes the scenario, not when code compiles. Features list = <i>what the system does</i>; stories = <i>value for a user</i>.</div>
+
+<div class="box"><h3>Acceptance criteria — GWT</h3><b>Given</b> context · <b>When</b> action · <b>Then</b> observable yes/no outcome.
+<div class="ours">Given I'm a logged-in resident, When the manager posts a gas-outage alert, Then I see it pinned at the top of my feed.</div></div>
+
+<div class="box"><h3>INVEST</h3><b>I</b>ndependent · <b>N</b>egotiable · <b>V</b>aluable · <b>E</b>stimable · <b>S</b>mall (one sprint) · <b>T</b>estable. Fails → rewrite before grooming.</div>
+
+<div class="box"><h3>MoSCoW</h3><b>M</b>ust · <b>S</b>hould · <b>C</b>ould · <b>W</b>on't (drop). Rule: 8–12 stories, ≥6 Must, ≤2 Should, stable IDs US-01…</div>
+
+<div class="box"><h3>Backlog grooming (refinement)</h3>PO-led, before Sprint Planning. Understand it? (no → rewrite) · In scope? (no → park) · Small enough? (no → split) → <b>ready backlog</b> / <b>Definition of Ready</b>. <b>Backlog pyramid:</b> top 10–15 fully detailed + estimated; middle T-shirt sizes (S/M/L/XL); tail = titles only. Student cadence 30–45 min weekly.
+<div class="ours">Decisions: one group chat per residential complex; payments out of MVP.</div></div>
+
+<div class="box"><h3>Profit forecast</h3><b>Net value = benefit − cost</b> over 12 months, <b>Base / Pessimistic / Optimistic</b>. ≥5 explicit assumptions (users, usage, time saved, cost…), ≥2 change between scenarios. Feeds the charter's <b>Business Case</b>. Be ready: which assumptions changed, why pessimistic is still positive / what you'd cut.</div>
+</div>
+
+<h2>TSIS 7 — Release Plan, Budget &amp; Sprint Backlog (4 pts)</h2>
+<div class="cols">
+<div class="box"><h3>Story points (SP)</h3><b>Relative</b> effort = complexity + uncertainty + volume. Not hours, not money; team-relative. Fibonacci 1-2-3-5-8-13-21 (gaps grow with uncertainty). Target 3–5; <b>8 = warning</b> (split?); <b>13 = not understood</b> → split or <b>spike</b> (time-boxed research). Value of estimating = shared understanding.</div>
+
+<div class="box"><h3>Planning poker</h3>PO reads story → each picks card face down → reveal simultaneously (avoids <b>anchoring bias</b>) → highest &amp; lowest explain → re-vote until convergence (2–3 rounds). <b>Never average.</b> Disagreement = hidden assumptions.</div>
+
+<div class="box"><h3>Three backlogs</h3><table><tr><th>Artifact</th><th>Question</th><th>Owner</th></tr>
+<tr><td>Product Backlog</td><td>What could we build?</td><td>PO</td></tr>
+<tr><td>Release / MVP plan</td><td>What ships by deadline?</td><td>PO + team</td></tr>
+<tr><td>Sprint Backlog</td><td>What do we finish this sprint?</td><td>Dev team</td></tr></table>
+Flow: Features → Stories → Groomed Backlog → Release Plan → Sprint Backlog → Working Software.</div>
+
+<div class="box"><h3>Release planning &amp; prioritization</h3><b>R1 = MVP</b> (Must only, demo-able) · <b>R2</b> = Should + polish, if time allows. Inputs: charter goals, Must stories, real hours/sprint. Prioritize by <b>MoSCoW</b>, <b>value vs cost</b>, <b>risk</b> (unknowns early), <b>dependencies</b> (auth first). <b>PO decides, team informs</b>. Anti-pattern: priority by who shouted loudest.</div>
+
+<div class="box"><h3>Budgeting (Meredith Ch. 7)</h3>
+<table><tr><th></th><th>Top-down</th><th>Bottom-up</th></tr>
+<tr><td>How</td><td>Senior sets cap from experience</td><td>Sum tasks × hours × rate + tools</td></tr>
+<tr><td>+</td><td>Fast, early</td><td>Realistic</td></tr>
+<tr><td>Risk</td><td>Wrong cap squeezes all</td><td>Forget shared costs (integration)</td></tr>
+<tr><td>Ours</td><td>Cap in charter Resources</td><td>Sprint tasks × hours = reality check</td></tr></table>
+<b>Estimate levels:</b> rough/order-of-magnitude → budget estimate (SP live here) → definitive (work packages known).<br>
+<b>Contingency</b> (§7.3): visible reserve for risk, <i>not padding</i>; keep known costs separate from risk costs.<br>
+<b>Cone of uncertainty:</b> earlier = less known → refine every sprint, <b>re-baseline</b> openly. Cases: "Estimates That Lied" (guess treated as contract); <b>Limerick</b> nuclear plant under budget via continuous refinement.<br>
+<b>Consistency:</b> hours &amp; user counts in budget = profit forecast.</div>
+
+<div class="box"><h3>Sprint backlog (output of Sprint Planning)</h3><b>Sprint Goal</b> (one sentence) + selected <b>PBIs</b> (Product Backlog Items) with SP + <b>≥3 tasks per PBI</b> (design, code, test, docs) with owner.
+<div class="ours">"A resident can join their building by flat code, log in, and see emergency/outage alerts."</div></div>
+</div>
+
+<h2>Likely trick questions</h2>
+<table>
+<tr><td><b>Charter vs plan vs backlog?</b></td><td>Charter authorizes; WBS/plan details the work; backlog drives sprints.</td></tr>
+<tr><td><b>Why not hours for SP?</b></td><td>Relative sizing is faster and honest under uncertainty; hours appear at task level in the sprint backlog.</td></tr>
+<tr><td><b>Someone wants payments mid-sprint?</b></td><td>Change procedure (Resources): PM + sponsor approve in writing; otherwise parked for R2.</td></tr>
+<tr><td><b>Profit vs budget?</b></td><td>Budget = cost to build; profit forecast = net value (benefit − cost) after launch, 3 scenarios.</td></tr>
+<tr><td><b>Why hybrid?</b></td><td>Fixed TSIS deadlines = plan-driven gates; inside them 1-week Scrum sprints.</td></tr>
+<tr><td><b>Grooming vs Sprint Planning?</b></td><td>Grooming clarifies/sizes stories ahead; Sprint Planning commits a goal + PBIs + tasks for this sprint.</td></tr>
+<tr><td><b>Who prioritizes?</b></td><td>Product Owner; team informs feasibility and owns capacity.</td></tr>
+<tr><td><b>Restraints dominate the force field?</b></td><td>Act on the strongest restraint; if not mitigable, narrow charter objectives.</td></tr>
+</table>
+</body></html>
