@@ -17,7 +17,7 @@ export function OwnerView() {
               </div>
               <Badge label={f.paid ? 'Paid' : 'Due'} />
             </div>
-            <div className="grid grid-cols-3 gap-3 pt-3 border-t border-[#F6F5DC]">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-3 border-t border-[#F6F5DC]">
               <div>
                 <div className="text-xs text-[#697050] mb-0.5">Следующий платёж</div>
                 <div className="text-sm font-semibold text-[#1E2A0E] font-mono">{f.nextDue}</div>
@@ -28,7 +28,7 @@ export function OwnerView() {
               </div>
               <div>
                 <div className="text-xs text-[#697050] mb-0.5">Статус</div>
-                <div className="text-sm font-semibold text-emerald-700">{f.paid ? 'Нет задолженности' : '⚠ Просрочен'}</div>
+                <div className="text-sm font-semibold text-emerald-700 break-words">{f.paid ? 'Нет задолженности' : '⚠ Просрочен'}</div>
               </div>
             </div>
             {!f.paid && (

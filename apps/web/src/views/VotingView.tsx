@@ -41,10 +41,10 @@ export function VotingView() {
                 ))}
               </div>
 
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-[11px] font-mono text-[#697050]">Проголосовало: {v.yes + v.no + v.abstain} из {v.total}</span>
                 {v.status === 'Open' && !v.voted && (
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     {(['yes', 'no', 'abstain'] as const).map(c => (
                       <button key={c} onClick={() => vote(v.id, c)}
                         className={`px-3 py-1.5 rounded text-xs font-semibold border transition-colors ${

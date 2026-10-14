@@ -157,9 +157,9 @@ function Shell({ resident }: { resident: Resident }) {
   }
 
   return (
-    <div className="flex min-h-screen" style={{background:'#F6F5DC'}}>
+    <div className="flex flex-col md:flex-row min-h-screen" style={{background:'#F6F5DC'}}>
       <Sidebar current={current} onNav={nav} resident={resident} onLogout={() => void signOut()} />
-      <main className="flex-1 p-6 overflow-auto max-w-5xl">
+      <main className="flex-1 min-w-0 w-full p-4 md:p-6 overflow-auto max-w-5xl">
         {render(current)}
       </main>
     </div>

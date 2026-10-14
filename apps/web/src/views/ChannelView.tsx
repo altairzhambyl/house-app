@@ -123,12 +123,12 @@ export function ChannelView({ resident }: { resident: Resident }) {
       {initial.error !== null && <ErrorBox error={initial.error} onRetry={() => void loadInitial()} />}
       {!initial.loading && initial.error === null && (
         <section aria-label="Чат дома"
-          className="flex flex-col h-[calc(100vh-3rem)] min-h-[360px] bg-white border border-[#DEDBB7] rounded-[14px] overflow-hidden shadow-[0_8px_30px_#2c4a1a0b]">
-          <header className="flex items-center gap-3.5 px-6 py-4 border-b border-[#E8E7D5] shrink-0">
-            <div className="w-12 h-12 grid place-items-center bg-[#E7EEDF] text-[#2C4A1A] rounded-[15px] text-xl shrink-0" aria-hidden>👥</div>
+          className="flex flex-col h-[calc(100dvh-5.5rem)] md:h-[calc(100dvh-3rem)] min-h-[320px] bg-white border border-[#DEDBB7] rounded-[14px] overflow-hidden shadow-[0_8px_30px_#2c4a1a0b]">
+          <header className="flex items-center gap-3 md:gap-3.5 px-4 md:px-6 py-3 md:py-4 border-b border-[#E8E7D5] shrink-0">
+            <div className="w-10 h-10 md:w-12 md:h-12 grid place-items-center bg-[#E7EEDF] text-[#2C4A1A] rounded-[15px] text-lg md:text-xl shrink-0" aria-hidden>👥</div>
             <div className="flex-1 min-w-0">
-              <h1 className="text-[19px] font-bold text-[#2C4A1A]">Чат дома</h1>
-              <p className="text-xs text-[#697050] mt-0.5 break-words">{resident.building_name} · соседи и управляющая компания</p>
+              <h1 className="text-[17px] md:text-[19px] font-bold truncate text-[#2C4A1A]">Чат дома</h1>
+              <p className="text-xs text-[#697050] mt-0.5 line-clamp-2 break-words">{resident.building_name} · соседи и управляющая компания</p>
             </div>
           </header>
           <div ref={listRef} role="log" aria-live="polite" aria-relevant="additions"
@@ -177,7 +177,7 @@ function MessageBubble({ m, own }: { m: Message; own: boolean }) {
     .filter(Boolean)
     .join(' · ')
   return (
-    <article className={`flex items-end gap-2.5 max-w-[82%] ${own ? 'self-end flex-row-reverse' : 'self-start'}`}>
+    <article className={`flex items-end gap-2.5 max-w-[92%] md:max-w-[82%] ${own ? 'self-end flex-row-reverse' : 'self-start'}`}>
       <Avatar name={m.author_name} />
       <div className={`min-w-0 px-3.5 py-2.5 border shadow-[0_2px_7px_#2c4a1a08] ${
         own ? 'bg-[#E1EDDA] border-[#D0E2C5] rounded-[14px_14px_4px_14px]'
@@ -219,13 +219,14 @@ function SendBox({ onSent }: { onSent: (m: Message) => void }) {
   }
 
   return (
-    <form onSubmit={send} className="border-t border-[#E8E7D5] bg-white px-6 pt-4 pb-3 shrink-0">
+    <form onSubmit={send} className="border-t border-[#E8E7D5] bg-white px-3 md:px-6 pt-3 md:pt-4 pb-3 shrink-0">
       {error !== null && <div className="mb-2"><ErrorNote error={error} /></div>}
       <div className="flex gap-2">
         <textarea
           aria-label="Сообщение"
-          className="flex-1 min-w-0 border border-[#D6D3A8] rounded-[9px] px-4 py-3 text-sm focus:outline-none focus:border-[#2C4A1A] resize-none h-12"
-          placeholder="Написать соседям… (Enter — отправить, Shift+Enter — новая строка)"
+          className="flex-1 min-w-0 border border-[#D6D3A8] rounded-[9px] px-3 md:px-4 py-3 text-sm focus:outline-none focus:border-[#2C4A1A] resize-none h-12"
+          aria-describedby="composer-hint"
+          placeholder="Написать соседям…"
           maxLength={MAX_BODY}
           value={body}
           onChange={e => setBody(e.target.value)}
@@ -237,10 +238,13 @@ function SendBox({ onSent }: { onSent: (m: Message) => void }) {
           }}
         />
         <button type="submit" disabled={busy || !body.trim()}
-          className="bg-[#A07C12] hover:bg-[#836208] disabled:opacity-60 text-white font-semibold rounded-[9px] px-5 text-sm transition-colors">
+          className="bg-[#A07C12] hover:bg-[#836208] disabled:opacity-60 text-white font-semibold rounded-[9px] px-3 md:px-5 text-sm shrink-0 transition-colors">
           {busy ? '…' : 'Отправить'}
         </button>
       </div>
+      <p id="composer-hint" className="sr-only md:not-sr-only md:mt-1.5 text-[11px] text-[#697050]">
+        Enter — отправить, Shift+Enter — новая строка
+      </p>
     </form>
   )
 }
