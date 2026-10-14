@@ -30,10 +30,12 @@ They are optional — without them the API still starts and reports `supabase: n
 
 Still open: where FastAPI is hosted. Vercel covers the Vite build but will not run a Python service.
 
-## Done-means
-Answers every clause of the syllabus task line, in English, every factual claim sourced, and internally
-consistent with the other assignments (same stakeholder names, same feature IDs, same team roles).
+## Done means
+`bash scripts/verify.sh` is green. It checks:
+- docs: every expected file in `docs/sis/` exists, is non-empty, has no TODO/TBD, and contains no Cyrillic
+- web: `tsc --noEmit` passes for `apps/web`
+- api: `ruff check` and `pytest` pass for `apps/api`
 
-## Verify
-`bash scripts/verify.sh` — every expected doc exists, is non-empty, carries no unresolved TODO/TBD,
-and contains no Cyrillic (submissions must be English).
+Docs are also done only when they answer every clause of the syllabus task, are in English, source every factual claim, and match the other assignments (stakeholder names, feature IDs, team roles).
+
+Code lives in a pnpm workspace with one frontend (`apps/web`) and one backend (`apps/api`), and `pnpm dev` runs both. Do not add parallel frontend folders.
