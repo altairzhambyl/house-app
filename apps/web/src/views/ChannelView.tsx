@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react'
-import { Card, ErrorBox, ErrorNote, Loading, SectionHeader } from '../components/ui'
+import { ErrorBox, ErrorNote, Loading } from '../components/ui'
 import { api } from '../lib/api'
 import { formatMessageTime } from '../lib/format'
 import type { Message, Resident } from '../types'
@@ -119,12 +119,20 @@ export function ChannelView({ resident }: { resident: Resident }) {
 
   return (
     <div>
-      <SectionHeader title="Чат дома" sub={`${resident.building_name} · соседи и управляющая компания`} />
       {initial.loading && <Loading />}
       {initial.error !== null && <ErrorBox error={initial.error} onRetry={() => void loadInitial()} />}
       {!initial.loading && initial.error === null && (
-        <Card className="flex flex-col h-[calc(100vh-11rem)] min-h-[360px]">
-          <div ref={listRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+        <section aria-label="Чат дома"
+          className="flex flex-col h-[calc(100vh-3rem)] min-h-[360px] bg-white border border-[#DEDBB7] rounded-[14px] overflow-hidden shadow-[0_8px_30px_#2c4a1a0b]">
+          <header className="flex items-center gap-3.5 px-6 py-4 border-b border-[#E8E7D5] shrink-0">
+            <div className="w-12 h-12 grid place-items-center bg-[#E7EEDF] text-[#2C4A1A] rounded-[15px] text-xl shrink-0" aria-hidden>👥</div>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-[19px] font-bold text-[#2C4A1A]">Чат дома</h1>
+              <p className="text-xs text-[#697050] mt-0.5 break-words">{resident.building_name} · соседи и управляющая компания</p>
+            </div>
+          </header>
+          <div ref={listRef} role="log" aria-live="polite" aria-relevant="additions"
+            className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-[clamp(16px,4%,48px)] py-6 bg-gradient-to-b from-[#FAF9ED] to-[#F6F5DC] flex flex-col gap-4">
             {hasOlder && (
               <div className="text-center">
                 <button onClick={() => void loadOlder()} disabled={olderState.loading}
@@ -135,7 +143,7 @@ export function ChannelView({ resident }: { resident: Resident }) {
               </div>
             )}
             {messages.length === 0 && (
-              <p className="text-center text-sm text-[#697050] py-10">Сообщений пока нет. Напишите первым!</p>
+              <p className="m-auto text-center text-sm text-[#697050]">Сообщений пока нет. Напишите первым!</p>
             )}
             {messages.map(m => <MessageBubble key={m.id} m={m} own={m.author_id === resident.id} />)}
           </div>
@@ -145,27 +153,44 @@ export function ChannelView({ resident }: { resident: Resident }) {
             </div>
           )}
           <SendBox onSent={onSent} />
-        </Card>
+        </section>
       )}
     </div>
   )
 }
 
+const AVATAR_COLORS = ['#DDEDD9', '#FCE7C8', '#DCEAF8', '#F2DFF1', '#F7E6D7']
+
+function Avatar({ name }: { name: string }) {
+  const initials = name.trim().split(/\s+/).slice(0, 2).map(p => p[0]?.toUpperCase()).join('')
+  const color = AVATAR_COLORS[Array.from(name).reduce((a, c) => a + c.charCodeAt(0), 0) % AVATAR_COLORS.length]
+  return (
+    <span aria-hidden title={name} style={{ backgroundColor: color }}
+      className="w-9 h-9 min-w-9 grid place-items-center rounded-full text-xs font-bold text-[#2C4A1A] border-2 border-white">
+      {initials || '?'}
+    </span>
+  )
+}
+
 function MessageBubble({ m, own }: { m: Message; own: boolean }) {
-  const who = [m.author_name, m.role === 'manager' ? 'УК' : m.flat_number ? `кв. ${m.flat_number}` : null]
+  const who = own ? 'Вы' : [m.author_name, m.role === 'manager' ? 'УК' : m.flat_number ? `кв. ${m.flat_number}` : null]
     .filter(Boolean)
     .join(' · ')
   return (
-    <div className={`flex ${own ? 'justify-end' : 'justify-start'}`}>
-      <div className={`max-w-[75%] rounded-md px-3 py-2 ${
-        own ? 'bg-[#2C4A1A] text-white' : m.role === 'manager' ? 'bg-amber-50 border border-amber-200' : 'bg-[#F6F5DC]'
+    <article className={`flex items-end gap-2.5 max-w-[82%] ${own ? 'self-end flex-row-reverse' : 'self-start'}`}>
+      <Avatar name={m.author_name} />
+      <div className={`min-w-0 px-3.5 py-2.5 border shadow-[0_2px_7px_#2c4a1a08] ${
+        own ? 'bg-[#E1EDDA] border-[#D0E2C5] rounded-[14px_14px_4px_14px]'
+          : m.role === 'manager' ? 'bg-amber-50 border-amber-200 rounded-[14px_14px_14px_4px]'
+          : 'bg-white border-[#E8E7D5] rounded-[14px_14px_14px_4px]'
       }`}>
-        <div className={`text-[11px] font-mono mb-0.5 ${own ? 'text-white/60' : 'text-[#697050]'}`}>
-          {who} · {formatMessageTime(m.created_at)}
+        <div className="flex items-baseline justify-between gap-5 mb-1">
+          <strong className="text-xs text-[#2C4A1A]">{who}</strong>
+          <time dateTime={m.created_at} className="text-[10px] text-[#697050] whitespace-nowrap">{formatMessageTime(m.created_at)}</time>
         </div>
-        <p className={`text-sm whitespace-pre-line break-words ${own ? 'text-white' : 'text-[#1E2A0E]'}`}>{m.body}</p>
+        <p className="text-sm leading-relaxed text-[#263521] whitespace-pre-line break-words">{m.body}</p>
       </div>
-    </div>
+    </article>
   )
 }
 
@@ -194,12 +219,12 @@ function SendBox({ onSent }: { onSent: (m: Message) => void }) {
   }
 
   return (
-    <form onSubmit={send} className="border-t border-[#D6D3A8] p-3">
+    <form onSubmit={send} className="border-t border-[#E8E7D5] bg-white px-6 pt-4 pb-3 shrink-0">
       {error !== null && <div className="mb-2"><ErrorNote error={error} /></div>}
       <div className="flex gap-2">
         <textarea
           aria-label="Сообщение"
-          className="flex-1 border border-[#D6D3A8] rounded px-3 py-2 text-sm focus:outline-none focus:border-[#2C4A1A] resize-none h-10"
+          className="flex-1 min-w-0 border border-[#D6D3A8] rounded-[9px] px-4 py-3 text-sm focus:outline-none focus:border-[#2C4A1A] resize-none h-12"
           placeholder="Написать соседям… (Enter — отправить, Shift+Enter — новая строка)"
           maxLength={MAX_BODY}
           value={body}
@@ -212,7 +237,7 @@ function SendBox({ onSent }: { onSent: (m: Message) => void }) {
           }}
         />
         <button type="submit" disabled={busy || !body.trim()}
-          className="bg-[#A07C12] hover:bg-[#836208] disabled:opacity-60 text-white font-semibold rounded px-4 text-sm transition-colors">
+          className="bg-[#A07C12] hover:bg-[#836208] disabled:opacity-60 text-white font-semibold rounded-[9px] px-5 text-sm transition-colors">
           {busy ? '…' : 'Отправить'}
         </button>
       </div>

@@ -21,3 +21,6 @@ __pycache__/
 
 # generated documents
 *.pdf
+
+.DS_Store
+*.zip
