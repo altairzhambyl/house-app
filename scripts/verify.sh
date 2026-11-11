@@ -76,6 +76,15 @@ check_code() {
     note "FAILED:"; sed 's/^/    /' /tmp/hv-tsc.log | tail -25; fail=1
   fi
 
+  echo "== frontend unit tests =="
+  if [[ ! -d node_modules ]]; then
+    note "node_modules missing - see above"; fail=1
+  elif pnpm --filter web test >/tmp/hv-vitest.log 2>&1; then
+    note "ok"
+  else
+    note "FAILED:"; sed 's/^/    /' /tmp/hv-vitest.log | tail -25; fail=1
+  fi
+
   echo "== backend lint =="
   if [[ ! -d apps/api/.venv ]]; then
     note "apps/api/.venv missing - run: pnpm --filter api setup"; fail=1

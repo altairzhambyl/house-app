@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  web:
+    name: Web - typecheck and unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter web typecheck
+      - run: pnpm --filter web test
+
+  api:
+    name: API - lint and integration tests (local Supabase)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          working-directory: apps/api
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.95.4
+      - name: Install dependencies
+        working-directory: apps/api
+        run: uv sync --locked
+      - name: Lint and format check
+        working-directory: apps/api
+        run: uv run ruff check . && uv run ruff format --check .
+      - name: Start local Supabase (migrations + seed)
+        run: supabase start -x studio,edge-runtime,logflare,vector,imgproxy
+      - name: Integration tests
+        working-directory: apps/api
+        # A skipped suite must not pass CI: the tests skip when Supabase is not up.
+        run: |
+          env -u PYTHONPATH uv run pytest -q -rs | tee pytest.log
+          if grep -qiE '[0-9]+ skipped' pytest.log; then
+            echo "::error::integration tests were skipped - Supabase did not start"; exit 1
+          fi
+      - name: Stop Supabase
+        if: always()
+        run: supabase stop --no-backup
+
+  docs:
+    name: Coursework documents
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash scripts/verify.sh docs

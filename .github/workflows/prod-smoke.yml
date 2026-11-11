@@ -1,0 +1,40 @@
+name: Production smoke tests
+
+# Read-only checks against the live demo. Runs after every successful
+# production deploy (Vercel reports it as a GitHub deployment), weekly
+# (which also keeps the free Supabase project from pausing), and on demand.
+on:
+  deployment_status:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: Site to test
+        default: https://house-app-blush.vercel.app
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    if: >-
+      github.event_name != 'deployment_status' ||
+      (github.event.deployment_status.state == 'success' &&
+       github.event.deployment.environment == 'Production')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:prod
+        env:
+          SMOKE_URL: ${{ github.event.deployment_status.environment_url || inputs.base_url || vars.PROD_URL }}
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+          DEMO_PASSWORD: ${{ secrets.DEMO_PASSWORD }}
