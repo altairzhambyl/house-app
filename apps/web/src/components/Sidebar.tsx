@@ -1,9 +1,75 @@
 import { useEffect, useRef, useState } from 'react'
+import { LanguageSwitcher, defineMessages, useT, type TFunction } from '../i18n'
 import type { Resident, View } from '../types'
+
+const m = defineMessages({
+  ru: {
+    dashboard: 'Главная',
+    news: 'Новости',
+    channel: 'Чат дома',
+    report: 'Подать заявку',
+    requests: 'Заявки',
+    flats: 'Квартиры и коды',
+    outages: 'Отключения',
+    alerts: 'Экстренные',
+    complaints: 'Жалобы',
+    voting: 'Голосования',
+    payments: 'Платежи',
+    owner: 'Мои объекты',
+    demo: 'Демо-данные',
+    logout: '← Выйти',
+    flat: 'Кв. {flat}',
+    manager: 'Управляющий',
+    openMenu: 'Открыть меню',
+    closeMenu: 'Закрыть меню',
+    navLabel: 'Основное меню',
+  },
+  kk: {
+    dashboard: 'Басты бет',
+    news: 'Жаңалықтар',
+    channel: 'Үй чаты',
+    report: 'Өтінім беру',
+    requests: 'Өтінімдер',
+    flats: 'Пәтерлер мен кодтар',
+    outages: 'Өшірулер',
+    alerts: 'Шұғыл хабарламалар',
+    complaints: 'Шағымдар',
+    voting: 'Дауыс беру',
+    payments: 'Төлемдер',
+    owner: 'Менің нысандарым',
+    demo: 'Демо деректер',
+    logout: '← Шығу',
+    flat: '{flat}-пәтер',
+    manager: 'Басқарушы',
+    openMenu: 'Мәзірді ашу',
+    closeMenu: 'Мәзірді жабу',
+    navLabel: 'Негізгі мәзір',
+  },
+  en: {
+    dashboard: 'Home',
+    news: 'News',
+    channel: 'Building chat',
+    report: 'Submit a request',
+    requests: 'Requests',
+    flats: 'Flats and codes',
+    outages: 'Outages',
+    alerts: 'Emergency alerts',
+    complaints: 'Complaints',
+    voting: 'Voting',
+    payments: 'Payments',
+    owner: 'My properties',
+    demo: 'Demo data',
+    logout: '← Sign out',
+    flat: 'Flat {flat}',
+    manager: 'Manager',
+    openMenu: 'Open menu',
+    closeMenu: 'Close menu',
+    navLabel: 'Main menu',
+  },
+})
 
 interface NavItem {
   view: View
-  label: string
   icon: string
   managerOnly?: boolean
   // Filing a request needs a flat; managers usually have none.
@@ -12,22 +78,22 @@ interface NavItem {
 
 // nav — real features
 const NAV_ITEMS: NavItem[] = [
-  { view: 'dashboard', label: 'Главная', icon: '⌂' },
-  { view: 'news', label: 'Новости', icon: '📢' },
-  { view: 'channel', label: 'Чат дома', icon: '💬' },
-  { view: 'report', label: 'Подать заявку', icon: '＋', needsFlat: true },
-  { view: 'requests', label: 'Заявки', icon: '📋' },
-  { view: 'flats', label: 'Квартиры и коды', icon: '🔑', managerOnly: true },
+  { view: 'dashboard', icon: '⌂' },
+  { view: 'news', icon: '📢' },
+  { view: 'channel', icon: '💬' },
+  { view: 'report', icon: '＋', needsFlat: true },
+  { view: 'requests', icon: '📋' },
+  { view: 'flats', icon: '🔑', managerOnly: true },
 ]
 
 // nav — still on mock data (see DemoBadge)
 const DEMO_ITEMS: NavItem[] = [
-  { view: 'outages', label: 'Отключения', icon: '⚡' },
-  { view: 'alerts', label: 'Экстренные', icon: '🚨' },
-  { view: 'complaints', label: 'Жалобы', icon: '⚑' },
-  { view: 'voting', label: 'Голосования', icon: '✓' },
-  { view: 'payments', label: 'Платежи', icon: '₸' },
-  { view: 'owner', label: 'Мои объекты', icon: '🏠' },
+  { view: 'outages', icon: '⚡' },
+  { view: 'alerts', icon: '🚨' },
+  { view: 'complaints', icon: '⚑' },
+  { view: 'voting', icon: '✓' },
+  { view: 'payments', icon: '₸' },
+  { view: 'owner', icon: '🏠' },
 ]
 
 export function visibleViews(resident: Resident): View[] {
@@ -40,18 +106,24 @@ function isVisible(item: NavItem, resident: Resident): boolean {
   return true
 }
 
-function NavButton({ item, current, onNav }: { item: NavItem; current: View; onNav: (v: View) => void }) {
+function NavButton({ item, current, onNav, t }: {
+  item: NavItem
+  current: View
+  onNav: (v: View) => void
+  t: TFunction<keyof (typeof m)['ru']>
+}) {
   return (
     <button
       onClick={() => onNav(item.view)}
+      aria-current={current === item.view ? 'page' : undefined}
       className={`w-full text-left flex items-center gap-2.5 px-3 py-2 rounded text-sm transition-colors relative ${
         current === item.view
           ? 'bg-white/15 text-white font-medium'
           : 'text-white/60 hover:text-white hover:bg-white/8'
       }`}
     >
-      <span className="text-base w-5 text-center">{item.icon}</span>
-      <span className="flex-1">{item.label}</span>
+      <span className="text-base w-5 text-center" aria-hidden>{item.icon}</span>
+      <span className="flex-1">{t(item.view)}</span>
     </button>
   )
 }
@@ -67,8 +139,9 @@ export function Sidebar({
   resident: Resident
   onLogout: () => void
 }) {
+  const t = useT(m)
   const subtitle = [
-    resident.flat_number ? `Кв. ${resident.flat_number}` : resident.role === 'manager' ? 'Управляющий' : null,
+    resident.flat_number ? t('flat', { flat: resident.flat_number }) : resident.role === 'manager' ? t('manager') : null,
     resident.full_name,
   ]
     .filter(Boolean)
@@ -90,23 +163,24 @@ export function Sidebar({
     onNav(v)
   }
 
-  const navList = (go: (v: View) => void) => (
+  const navList = (go: (v: View) => void, withSwitcher: boolean) => (
     <>
-      <nav className="flex-1 py-3 space-y-0.5 px-2">
+      <nav aria-label={t('navLabel')} className="flex-1 py-3 space-y-0.5 px-2">
         {NAV_ITEMS.filter(i => isVisible(i, resident)).map(item => (
-          <NavButton key={item.view} item={item} current={current} onNav={go} />
+          <NavButton key={item.view} item={item} current={current} onNav={go} t={t} />
         ))}
         <div className="px-3 pt-4 pb-1 text-white/30 text-[10px] font-mono uppercase tracking-widest">
-          Демо-данные
+          {t('demo')}
         </div>
         {DEMO_ITEMS.map(item => (
-          <NavButton key={item.view} item={item} current={current} onNav={go} />
+          <NavButton key={item.view} item={item} current={current} onNav={go} t={t} />
         ))}
       </nav>
-      <div className="px-4 py-4 border-t border-white/10">
+      <div className="px-4 py-4 border-t border-white/10 flex flex-wrap items-center justify-between gap-3">
         <button onClick={onLogout} className="text-white/40 text-xs hover:text-white/70 transition-colors">
-          ← Выйти
+          {t('logout')}
         </button>
+        {withSwitcher && <LanguageSwitcher tone="dark" />}
       </div>
     </>
   )
@@ -120,8 +194,9 @@ export function Sidebar({
             <div className="text-white font-bold text-sm leading-tight truncate">{resident.building_name}</div>
             <div className="text-white/50 text-[11px] font-mono truncate">{subtitle}</div>
           </div>
+          <LanguageSwitcher tone="dark" className="shrink-0" />
           <button ref={toggleRef} type="button" onClick={() => setOpen(o => !o)}
-            aria-expanded={open} aria-controls="mobile-nav" aria-label={open ? 'Закрыть меню' : 'Открыть меню'}
+            aria-expanded={open} aria-controls="mobile-nav" aria-label={open ? t('closeMenu') : t('openMenu')}
             className="w-10 h-10 grid place-items-center rounded text-white text-xl hover:bg-white/10 shrink-0">
             <span aria-hidden>{open ? '✕' : '☰'}</span>
           </button>
@@ -132,7 +207,7 @@ export function Sidebar({
         <div id="mobile-nav" hidden={!open}
           className="absolute left-0 right-0 top-14 max-h-[calc(100dvh-3.5rem)] overflow-y-auto flex flex-col border-t border-white/10 shadow-lg"
           style={{background:'#2C4A1A'}}>
-          {navList(navAndClose)}
+          {navList(navAndClose, false)}
         </div>
       </div>
 
@@ -142,7 +217,7 @@ export function Sidebar({
           <div className="text-white font-bold text-base leading-tight">{resident.building_name}</div>
           <div className="text-white/50 text-xs font-mono mt-0.5">{subtitle}</div>
         </div>
-        {navList(onNav)}
+        {navList(onNav, true)}
       </aside>
     </>
   )
