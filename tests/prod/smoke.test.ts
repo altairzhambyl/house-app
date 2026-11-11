@@ -39,10 +39,15 @@ describe('site', () => {
 })
 
 describe('api', () => {
-  it('is healthy and connected to Supabase', async () => {
+  it('is healthy and its database answers', async () => {
     const res = await get('/api/health')
     expect(res.status).toBe(200)
-    expect(await res.json()).toMatchObject({ status: 'ok', supabase: 'configured' })
+    expect(await res.json()).toMatchObject({ status: 'ok', supabase: 'configured', database: 'ok' })
+    expect(res.headers.get('x-request-id')).toMatch(/^[0-9a-f]{32}$/)
+  })
+
+  it.each(['/api/docs', '/api/openapi.json'])('does not publish %s', async path => {
+    expect((await get(path)).status).toBe(404)
   })
 
   it.each(['/api/me', '/api/requests', '/api/flats', '/api/announcements'])(
@@ -55,6 +60,17 @@ describe('api', () => {
   it('rejects a forged token', async () => {
     const res = await get('/api/me', { headers: { Authorization: 'Bearer not-a-real-token' } })
     expect(res.status).toBe(401)
+  })
+})
+
+describe('security headers', () => {
+  it.each(['/', '/api/health'])('are set on %s', async path => {
+    const h = (await get(path)).headers
+    expect(h.get('x-content-type-options')).toBe('nosniff')
+    expect(h.get('x-frame-options')).toBe('DENY')
+    expect(h.get('referrer-policy')).toBe('strict-origin-when-cross-origin')
+    expect(h.get('strict-transport-security')).toContain('max-age=')
+    expect(h.get('content-security-policy-report-only')).toContain("frame-ancestors 'none'")
   })
 })
 

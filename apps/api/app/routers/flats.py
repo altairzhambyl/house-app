@@ -13,6 +13,7 @@ from postgrest.exceptions import APIError
 
 from app import join_codes
 from app.deps import CurrentManager, SupabaseDep
+from app.rate_limit import rate_limited
 from app.schemas import FlatOut, FlatResidentOut
 
 router = APIRouter(prefix="/api/flats", tags=["flats"])
@@ -73,7 +74,7 @@ async def list_flats(supabase: SupabaseDep, manager: CurrentManager) -> list[Fla
     return sorted(flats, key=lambda flat: _natural_key(flat.number))
 
 
-@router.post("/{flat_id}/rotate-code")
+@router.post("/{flat_id}/rotate-code", dependencies=[rate_limited("flat_admin")])
 async def rotate_code(flat_id: UUID, supabase: SupabaseDep, manager: CurrentManager) -> FlatOut:
     """Replace the flat's join code, e.g. after it leaked.
 
@@ -129,7 +130,7 @@ async def list_flat_residents(
     return residents
 
 
-@router.delete("/{flat_id}/residents/{resident_id}")
+@router.delete("/{flat_id}/residents/{resident_id}", dependencies=[rate_limited("flat_admin")])
 async def remove_flat_resident(
     flat_id: UUID, resident_id: UUID, supabase: SupabaseDep, manager: CurrentManager
 ) -> FlatOut:

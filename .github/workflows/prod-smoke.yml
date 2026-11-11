@@ -1,10 +1,14 @@
 name: Production smoke tests
 
 # Read-only checks against the live demo. Runs after every successful
-# production deploy (Vercel reports it as a GitHub deployment), weekly
-# (which also keeps the free Supabase project from pausing), and on demand.
+# production deploy, weekly (which also keeps the free Supabase project from
+# pausing), and on demand.
+#
+# Vercel's GitHub integration here reports deploys as a commit status named
+# "Vercel" (it creates no GitHub Deployments, so deployment_status never
+# fires). A successful "Vercel" status on a commit on main = production is live.
 on:
-  deployment_status:
+  status:
   schedule:
     - cron: "0 6 * * 1"
   workflow_dispatch:
@@ -19,22 +23,23 @@ permissions:
 jobs:
   smoke:
     if: >-
-      github.event_name != 'deployment_status' ||
-      (github.event.deployment_status.state == 'success' &&
-       github.event.deployment.environment == 'Production')
+      github.event_name != 'status' ||
+      (github.event.context == 'Vercel' &&
+       github.event.state == 'success' &&
+       contains(github.event.branches.*.name, 'main'))
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:prod
         env:
-          SMOKE_URL: ${{ github.event.deployment_status.environment_url || inputs.base_url || vars.PROD_URL }}
+          SMOKE_URL: ${{ inputs.base_url || vars.PROD_URL }}
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
           DEMO_PASSWORD: ${{ secrets.DEMO_PASSWORD }}
