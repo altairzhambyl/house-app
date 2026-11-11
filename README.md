@@ -1,5 +1,8 @@
 # house-app
 
+[![CI](https://github.com/altairzhambyl/house-app/actions/workflows/ci.yml/badge.svg)](https://github.com/altairzhambyl/house-app/actions/workflows/ci.yml)
+[![Production smoke tests](https://github.com/altairzhambyl/house-app/actions/workflows/prod-smoke.yml/badge.svg)](https://github.com/altairzhambyl/house-app/actions/workflows/prod-smoke.yml)
+
 Resident ↔ management application for Kazakhstani ЖК (residential complexes).
 Replaces the building's WhatsApp group with structured chats, complaint routing,
 fault tracking, announcements and emergency alerts.
@@ -11,6 +14,7 @@ University course project (SIS & TSIS).
 | Frontend | Vite + React — Zere Bayzhan |
 | Backend | FastAPI — Altair Zhambyl |
 | Tracking | Linear — workspace `itpm-houseapp`, team `ITP` |
+| Live demo | https://house-app-blush.vercel.app (Vercel + Supabase, Frankfurt) |
 
 ## Getting started
 
@@ -77,5 +81,21 @@ bash scripts/verify.sh        # docs + code
 bash scripts/verify.sh code   # frontend typecheck + backend lint + backend tests
 bash scripts/verify.sh docs   # deliverables present, complete, English-only
 ```
+
+## CI/CD
+
+| Workflow | When | What |
+|---|---|---|
+| `ci.yml` | every push and pull request | web typecheck + vitest; API ruff + pytest against a throwaway local Supabase (fails if tests are skipped); coursework docs check |
+| Vercel Git integration | push to `main` / pull request | production deploy / preview deploy |
+| `prod-smoke.yml` | after each production deploy, weekly, on demand | read-only checks of the live site (`pnpm test:prod`); the weekly run also keeps the free Supabase project from pausing |
+
+Run the smoke tests yourself:
+
+```bash
+SMOKE_URL=https://house-app-blush.vercel.app SUPABASE_URL=... SUPABASE_ANON_KEY=... DEMO_PASSWORD=... pnpm test:prod
+```
+
+Database migrations are not applied by CI: push them with `supabase db push` after merging.
 
 See `CLAUDE.md` for project constraints.
