@@ -1,9 +1,11 @@
 import { useCallback, useState } from 'react'
 import { Badge, Card, ErrorNote, Loaded, SectionHeader } from '../components/ui'
 import { api } from '../lib/api'
-import { CATEGORY_LABELS, STATUS_LABELS, STATUS_ORDER, formatDateTime, requestCode } from '../lib/format'
+import { STATUS_ORDER, STATUS_TONE, requestCode } from '../lib/format'
 import { useApi } from '../lib/useApi'
 import type { RequestStatus, Resident, ServiceRequest } from '../types'
+import { useLocale, useT } from '../i18n'
+import { m } from './RequestDetailView.i18n'
 
 export function RequestDetailView({ id, resident, onBack, onChanged }: {
   id: string
@@ -12,11 +14,12 @@ export function RequestDetailView({ id, resident, onBack, onChanged }: {
   // Lets the (still mounted) list show the new status without a reload.
   onChanged: (r: ServiceRequest) => void
 }) {
+  const t = useT(m)
   const { state, reload, setData } = useApi(useCallback(() => api.getRequest(id), [id]))
 
   return (
     <div>
-      <button onClick={onBack} className="text-xs text-[#A07C12] hover:underline mb-3">← К списку заявок</button>
+      <button onClick={onBack} className="text-xs text-[#A07C12] hover:underline mb-3">{t('back')}</button>
       <Loaded state={state} onRetry={reload}>
         {r => (
           <RequestDetail
@@ -42,28 +45,31 @@ function RequestDetail({ r, canChangeStatus, onUpdated }: {
   canChangeStatus: boolean
   onUpdated: (r: ServiceRequest) => void
 }) {
+  const t = useT(m)
+  const { formatDateTime, statusLabel, categoryLabel } = useLocale()
   const history = r.history ?? []
+  const code = requestCode(r.number)
   const reached = STATUS_ORDER.indexOf(r.status)
 
   return (
     <div>
-      <SectionHeader title={`Заявка ${requestCode(r.number)}`} sub={`${CATEGORY_LABELS[r.category]} · Кв. ${r.flat_number} · ${r.author_name}`} />
+      <SectionHeader title={t('title', { code })} sub={`${categoryLabel(r.category)} · ${t('flat', { flat: r.flat_number })} · ${r.author_name}`} />
       <div className="grid lg:grid-cols-3 gap-5">
         <div className="lg:col-span-2 space-y-4">
           <Card className="p-5">
             <div className="flex items-center gap-2 mb-3">
-              <Badge label={STATUS_LABELS[r.status]} />
-              <span className="text-[11px] text-[#697050] font-mono">создана {formatDateTime(r.created_at)}</span>
+              <Badge label={statusLabel(r.status)} tone={STATUS_TONE[r.status]} />
+              <span className="text-[11px] text-[#697050] font-mono">{t('created', { date: formatDateTime(r.created_at) })}</span>
             </div>
             <p className="text-sm text-[#1E2A0E] whitespace-pre-line break-words">{r.description}</p>
-            {r.location && <p className="text-xs text-[#697050] mt-2">📍 {r.location}</p>}
+            {r.location && <p className="text-xs text-[#697050] mt-2"><span aria-label={t('locationLabel')}>📍</span> {r.location}</p>}
 
             {/* Status timeline */}
             <div className="mt-4 pt-4 border-t border-[#F6F5DC] flex items-center gap-0 flex-wrap">
               {STATUS_ORDER.map((s, i) => (
                 <div key={s} className="flex items-center">
                   <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${i <= reached ? 'bg-[#2C4A1A] text-white' : 'bg-[#E2DFB8] text-[#697050]'}`}>{i + 1}</div>
-                  <div className="text-[10px] font-mono ml-1 mr-3 text-[#697050]">{STATUS_LABELS[s]}</div>
+                  <div className="text-[10px] font-mono ml-1 mr-3 text-[#697050]">{statusLabel(s)}</div>
                   {i < STATUS_ORDER.length - 1 && <div className={`h-px w-8 mr-3 ${i < reached ? 'bg-[#2C4A1A]' : 'bg-[#E2DFB8]'}`} />}
                 </div>
               ))}
@@ -74,9 +80,9 @@ function RequestDetail({ r, canChangeStatus, onUpdated }: {
             <Card className="p-3">
               {r.photo_url
                 ? <a href={r.photo_url} target="_blank" rel="noreferrer">
-                    <img src={r.photo_url} alt={`Фото к заявке ${requestCode(r.number)}`} className="w-full max-h-[480px] object-contain rounded" />
+                    <img src={r.photo_url} alt={t('photoAlt', { code })} className="w-full max-h-[480px] object-contain rounded" />
                   </a>
-                : <p className="text-xs text-[#697050] p-2">Фото прикреплено, но сейчас недоступно.</p>}
+                : <p className="text-xs text-[#697050] p-2">{t('photoUnavailable')}</p>}
             </Card>
           )}
         </div>
@@ -84,9 +90,9 @@ function RequestDetail({ r, canChangeStatus, onUpdated }: {
         <div className="space-y-4">
           {canChangeStatus && <StatusChanger r={r} onUpdated={onUpdated} />}
           <Card className="p-4">
-            <h2 className="font-semibold text-[#2C4A1A] text-sm mb-3">История</h2>
+            <h2 className="font-semibold text-[#2C4A1A] text-sm mb-3">{t('history')}</h2>
             {history.length === 0
-              ? <p className="text-xs text-[#697050]">История недоступна</p>
+              ? <p className="text-xs text-[#697050]">{t('historyUnavailable')}</p>
               : (
                 <ol className="space-y-3">
                   {history.map((h, i) => (
@@ -94,7 +100,7 @@ function RequestDetail({ r, canChangeStatus, onUpdated }: {
                       <div className="w-2 h-2 rounded-full bg-[#2C4A1A] mt-1.5 shrink-0" />
                       <div>
                         <div className="text-sm text-[#1E2A0E]">
-                          {i === 0 ? 'Заявка создана' : `Статус: ${STATUS_LABELS[h.status]}`}
+                          {i === 0 ? t('historyCreated') : t('historyStatus', { status: statusLabel(h.status) })}
                         </div>
                         <div className="text-[11px] text-[#697050] font-mono">{formatDateTime(h.at)} · {h.actor_name}</div>
                       </div>
@@ -110,6 +116,8 @@ function RequestDetail({ r, canChangeStatus, onUpdated }: {
 }
 
 function StatusChanger({ r, onUpdated }: { r: ServiceRequest; onUpdated: (r: ServiceRequest) => void }) {
+  const t = useT(m)
+  const { statusLabel } = useLocale()
   const [busy, setBusy] = useState<RequestStatus | null>(null)
   const [error, setError] = useState<unknown>(null)
 
@@ -127,7 +135,7 @@ function StatusChanger({ r, onUpdated }: { r: ServiceRequest; onUpdated: (r: Ser
 
   return (
     <Card className="p-4">
-      <h2 className="font-semibold text-[#2C4A1A] text-sm mb-3">Изменить статус</h2>
+      <h2 className="font-semibold text-[#2C4A1A] text-sm mb-3">{t('changeStatus')}</h2>
       <div className="flex flex-col gap-2">
         {STATUS_ORDER.map(s => (
           <button key={s}
@@ -138,10 +146,10 @@ function StatusChanger({ r, onUpdated }: { r: ServiceRequest; onUpdated: (r: Ser
                 ? 'bg-[#2C4A1A] text-white border-[#2C4A1A]'
                 : 'bg-white text-[#2C4A1A] border-[#D6D3A8] hover:border-[#2C4A1A] disabled:opacity-60'
             }`}
-          >{busy === s ? 'Сохранение…' : STATUS_LABELS[s]}</button>
+          >{busy === s ? t('saving') : statusLabel(s)}</button>
         ))}
       </div>
-      {error !== null && <div className="mt-2"><ErrorNote error={error} /></div>}
+      {error !== null && <div className="mt-2"><ErrorNote error={error} overrides={{ 404: t('requestGone'), 403: t('managerOnly') }} /></div>}
     </Card>
   )
 }
