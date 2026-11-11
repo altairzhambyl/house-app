@@ -10,6 +10,12 @@
     "dev": "pnpm -r --parallel dev",
     "build": "pnpm --filter web build",
     "typecheck": "pnpm --filter web typecheck",
-    "setup": "pnpm install && pnpm --filter api setup"
+    "setup": "pnpm install && pnpm --filter api setup",
+    "test": "pnpm --filter web test",
+    "test:prod": "vitest run --config tests/prod/vitest.config.ts"
+  },
+  "packageManager": "pnpm@10.32.1",
+  "devDependencies": {
+    "vitest": "^4.1.12"
   }
 }

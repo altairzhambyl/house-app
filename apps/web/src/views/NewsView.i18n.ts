@@ -1,0 +1,40 @@
+import { defineMessages } from '../i18n'
+
+export const m = defineMessages({
+  ru: {
+    title: 'Новости дома',
+    sub: 'Официальный канал управляющей компании',
+    empty: 'Новостей пока нет',
+    composeTitle: 'Новая публикация для всего дома',
+    titleLabel: 'Заголовок',
+    titlePlaceholder: 'Напр. Отключение воды в пятницу',
+    bodyLabel: 'Текст',
+    required: 'Заполните заголовок и текст',
+    publishing: 'Публикация…',
+    publish: 'Опубликовать',
+  },
+  kk: {
+    title: 'Үй жаңалықтары',
+    sub: 'Басқарушы компанияның ресми арнасы',
+    empty: 'Әзірге жаңалық жоқ',
+    composeTitle: 'Бүкіл үйге арналған жаңа жарияланым',
+    titleLabel: 'Тақырып',
+    titlePlaceholder: 'Мысалы, жұма күні су өшіріледі',
+    bodyLabel: 'Мәтін',
+    required: 'Тақырып пен мәтінді толтырыңыз',
+    publishing: 'Жариялануда…',
+    publish: 'Жариялау',
+  },
+  en: {
+    title: 'Building news',
+    sub: 'Official announcements from the management company',
+    empty: 'No news yet',
+    composeTitle: 'New announcement for the whole building',
+    titleLabel: 'Title',
+    titlePlaceholder: 'e.g. Water outage on Friday',
+    bodyLabel: 'Text',
+    required: 'Enter a title and text',
+    publishing: 'Publishing…',
+    publish: 'Publish',
+  },
+})

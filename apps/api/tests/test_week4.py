@@ -211,18 +211,41 @@ def test_account_without_building_is_forbidden(client: TestClient, stack, make_a
 # --- 4.3 ------------------------------------------------------------------
 
 
-def test_photo_uploads_and_shows_on_request(client: TestClient, make_account) -> None:
+def _upload_to_storage(stack, ticket: dict, content: bytes, mime: str) -> httpx.Response:
+    """What the browser's uploadToSignedUrl does: PUT the bytes straight to Storage."""
+    return httpx.put(
+        f"{stack['API_URL']}/storage/v1/object/upload/sign/{ticket['bucket']}/{ticket['path']}",
+        params={"token": ticket["token"]},
+        content=content,
+        headers={"Content-Type": mime},
+        timeout=30,
+    )
+
+
+def _ticket(client: TestClient, headers: dict[str, str], request_id: str, mime: str):
+    return client.post(
+        f"/api/requests/{request_id}/photo-upload", headers=headers, json={"content_type": mime}
+    )
+
+
+def test_photo_uploads_and_shows_on_request(client: TestClient, stack, make_account) -> None:
     alice = make_account(BUILDING_A, FLAT_A_14B)
     created = _file_request(client, alice.headers, "Door lock broken")
     png = _png()
 
-    uploaded = client.put(
+    ticket = _ticket(client, alice.headers, created["id"], "image/png")
+    assert ticket.status_code == 200, ticket.text
+    assert ticket.json()["path"].startswith(f"{BUILDING_A}/{created['id']}/")
+    stored = _upload_to_storage(stack, ticket.json(), png, "image/png")
+    assert stored.status_code == 200, stored.text
+
+    attached = client.put(
         f"/api/requests/{created['id']}/photo",
         headers=alice.headers,
-        files={"photo": ("door.png", png, "image/png")},
+        json={"path": ticket.json()["path"]},
     )
-    assert uploaded.status_code == 200, uploaded.text
-    assert uploaded.json()["has_photo"] is True
+    assert attached.status_code == 200, attached.text
+    assert attached.json()["has_photo"] is True
 
     detail = client.get(f"/api/requests/{created['id']}", headers=alice.headers).json()
     assert detail["photo_url"]
@@ -231,17 +254,36 @@ def test_photo_uploads_and_shows_on_request(client: TestClient, make_account) ->
     assert image.content == png
 
 
-def test_photo_rules(client: TestClient, make_account) -> None:
+def test_photo_rules(client: TestClient, stack, make_account) -> None:
     alice = make_account(BUILDING_A, FLAT_A_14B)
     neighbour = make_account(BUILDING_A, FLAT_A_7A)
     outsider = make_account(BUILDING_B, FLAT_B_22C)
     created = _file_request(client, alice.headers, "Light flickering")
-    url = f"/api/requests/{created['id']}/photo"
+    other = _file_request(client, alice.headers, "Second request")
+    rid = created["id"]
 
-    def put(headers: dict[str, str], content: bytes, mime: str) -> int:
-        return client.put(url, headers=headers, files={"photo": ("f", content, mime)}).status_code
+    # Who may ask for an upload ticket, and for which types.
+    assert _ticket(client, alice.headers, rid, "text/plain").status_code == 422
+    assert _ticket(client, neighbour.headers, rid, "image/png").status_code == 403
+    assert _ticket(client, outsider.headers, rid, "image/png").status_code == 404
 
-    assert put(alice.headers, b"not an image", "text/plain") == 415
-    assert put(alice.headers, b"\x00" * (5 * 1024 * 1024 + 1), "image/png") == 413
-    assert put(neighbour.headers, _png(), "image/png") == 403
-    assert put(outsider.headers, _png(), "image/png") == 404
+    # The bucket, not the API, enforces size and type on the direct upload.
+    ticket = _ticket(client, alice.headers, rid, "image/png").json()
+    too_big = _upload_to_storage(stack, ticket, b"\x00" * (5 * 1024 * 1024 + 1), "image/png")
+    assert too_big.status_code in (400, 413), too_big.text
+    wrong_type = _upload_to_storage(stack, ticket, b"not an image", "text/plain")
+    assert wrong_type.status_code in (400, 415), wrong_type.text
+
+    def attach(headers: dict[str, str], request_id: str, path: str) -> int:
+        url = f"/api/requests/{request_id}/photo"
+        return client.put(url, headers=headers, json={"path": path}).status_code
+
+    # Nothing was stored under the ticket's path, so it cannot be attached.
+    assert attach(alice.headers, rid, ticket["path"]) == 422
+    # A path issued for another request, or outside the folder, is refused.
+    ticket_other = _ticket(client, alice.headers, other["id"], "image/png").json()
+    assert _upload_to_storage(stack, ticket_other, _png(), "image/png").status_code == 200
+    assert attach(alice.headers, rid, ticket_other["path"]) == 422
+    assert attach(alice.headers, rid, f"{BUILDING_B}/{rid}/x.png") == 422
+    assert attach(neighbour.headers, rid, ticket["path"]) == 403
+    assert attach(outsider.headers, rid, ticket["path"]) == 404

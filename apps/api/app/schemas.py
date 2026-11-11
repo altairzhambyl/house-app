@@ -67,6 +67,14 @@ class FlatOut(BaseModel):
     resident_count: int
 
 
+class FlatResidentOut(BaseModel):
+    """An active resident of a flat, as a manager of its building sees them."""
+
+    id: UUID
+    full_name: str
+    created_at: datetime
+
+
 class RequestCreate(BaseModel):
     category: RequestCategory
     description: Annotated[str, _text(2000)]
@@ -111,6 +119,29 @@ class RequestDetailOut(RequestOut):
 
 class StatusUpdate(BaseModel):
     status: RequestStatus
+
+
+class PhotoType(str, Enum):
+    jpeg = "image/jpeg"
+    png = "image/png"
+    webp = "image/webp"
+
+
+class PhotoUploadCreate(BaseModel):
+    content_type: PhotoType
+
+
+class PhotoUploadOut(BaseModel):
+    """A one-time ticket to upload straight to Storage with uploadToSignedUrl."""
+
+    bucket: str
+    path: str
+    token: str
+
+
+class PhotoAttach(BaseModel):
+    # The path returned by POST /photo-upload; checked against the request's folder.
+    path: Annotated[str, _text(300)]
 
 
 class AnnouncementCreate(BaseModel):

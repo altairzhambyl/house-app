@@ -171,19 +171,25 @@ def make_account(stack: dict[str, str], make_flat) -> Iterator:
 
     yield _make
 
-    # Storage objects do not cascade: remove the test photos first.
+    # Storage objects do not cascade: remove the test photos first - every object
+    # in each request's folder, including uploads that were never attached.
     if created:
-        photos = http.get(
+        requests = http.get(
             "/rest/v1/requests",
             headers=admin,
-            params={
-                "select": "photo_path",
-                "author_id": f"in.({','.join(created)})",
-                "photo_path": "not.is.null",
-            },
+            params={"select": "id,building_id", "author_id": f"in.({','.join(created)})"},
         )
-        photos.raise_for_status()
-        paths = [row["photo_path"] for row in photos.json()]
+        requests.raise_for_status()
+        paths: list[str] = []
+        for row in requests.json():
+            folder = f"{row['building_id']}/{row['id']}"
+            listed = http.post(
+                "/storage/v1/object/list/request-photos",
+                headers=admin,
+                json={"prefix": folder, "limit": 100},
+            )
+            listed.raise_for_status()
+            paths += [f"{folder}/{obj['name']}" for obj in listed.json()]
         if paths:
             http.request(
                 "DELETE",

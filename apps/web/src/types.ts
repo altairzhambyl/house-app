@@ -50,6 +50,14 @@ export const FlatSchema = z.object({
 })
 export type Flat = z.infer<typeof FlatSchema>
 
+// An active resident of a flat, as its building's manager sees them (schemas.FlatResidentOut).
+export const FlatResidentSchema = z.object({
+  id: z.string(),
+  full_name: z.string(),
+  created_at: z.string(),
+})
+export type FlatResident = z.infer<typeof FlatResidentSchema>
+
 export const RequestEventSchema = z.object({
   status: RequestStatusSchema,
   at: z.string(),
