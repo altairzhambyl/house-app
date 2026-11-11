@@ -143,8 +143,25 @@ async def remove_flat_resident(
     Managers - including the caller - never match, so they cannot be removed here.
     """
     await _get_in_building(supabase, flat_id, manager.building_id)
-    response = (
-        await supabase.table("residents")
+    found = await (
+        supabase.table("residents")
+        .select("id")
+        .eq("id", str(resident_id))
+        .eq("flat_id", str(flat_id))
+        .eq("building_id", str(manager.building_id))
+        .eq("role", "resident")
+        .is_("removed_at", "null")
+        .execute()
+    )
+    if not found.data:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Resident not found in this flat")
+
+    # Rotate BEFORE removing. If the rotation fails, nothing has changed and the
+    # manager sees an error. Removing first would leave a removed resident with
+    # a still-valid code if the rotation then failed - and they could rejoin.
+    await _rotate(supabase, flat_id, manager.building_id)
+    await (
+        supabase.table("residents")
         .update({"removed_at": datetime.now(timezone.utc).isoformat()})
         .eq("id", str(resident_id))
         .eq("flat_id", str(flat_id))
@@ -153,7 +170,6 @@ async def remove_flat_resident(
         .is_("removed_at", "null")
         .execute()
     )
-    if not response.data:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Resident not found in this flat")
-    await _rotate(supabase, flat_id, manager.building_id)
+    # An empty update here means another manager removed them in between:
+    # the end state is the same, so there is nothing to report.
     return await _get_in_building(supabase, flat_id, manager.building_id)
