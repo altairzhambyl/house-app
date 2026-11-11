@@ -145,7 +145,7 @@ function FlatResidents({ flat, onChanged }: { flat: Flat; onChanged: (f: Flat) =
             <span className="ml-auto flex items-center gap-2">
               {confirming === r.id ? (
                 <>
-                  <span className="text-xs text-[#697050]">Удалить из кв. {flat.number}? Заявки и сообщения останутся.</span>
+                  <span className="text-xs text-[#697050]">Удалить из кв. {flat.number}? Заявки и сообщения останутся, код квартиры сменится.</span>
                   <button onClick={() => void remove(r)} disabled={removing !== null}
                     className="text-xs border border-red-300 hover:border-red-600 disabled:opacity-60 text-red-700 px-3 py-1 rounded font-medium transition-colors">
                     {removing === r.id ? '…' : 'Да, удалить'}
@@ -166,7 +166,7 @@ function FlatResidents({ flat, onChanged }: { flat: Flat; onChanged: (f: Flat) =
         ))}
       </ul>
       <p className="mt-2 text-[10px] text-[#697050]">
-        Удалённый жилец сразу теряет доступ к дому. Если код квартиры мог утечь, сначала выдайте новый код.
+        Удалённый жилец сразу теряет доступ к дому. Код квартиры при этом меняется автоматически — передайте новый код остальным будущим жильцам.
       </p>
       {removeError !== null && <div className="mt-1"><ErrorNote error={removeError} /></div>}
     </div>

@@ -78,24 +78,29 @@ async def rotate_code(flat_id: UUID, supabase: SupabaseDep, manager: CurrentMana
     """Replace the flat's join code, e.g. after it leaked.
 
     Residents who already joined stay linked; remove them one by one with
-    DELETE /api/flats/{flat_id}/residents/{resident_id}.
+    DELETE /api/flats/{flat_id}/residents/{resident_id} (which rotates the code too).
     """
     await _get_in_building(supabase, flat_id, manager.building_id)
+    await _rotate(supabase, flat_id, manager.building_id)
+    return await _get_in_building(supabase, flat_id, manager.building_id)
+
+
+async def _rotate(supabase: SupabaseDep, flat_id: UUID, building_id: UUID) -> None:
+    """Give the flat a fresh join code. The caller has checked the building."""
     for attempt in range(ROTATE_ATTEMPTS):
         try:
             await (
                 supabase.table("flats")
                 .update({"join_code": join_codes.generate()})
                 .eq("id", str(flat_id))
-                .eq("building_id", str(manager.building_id))
+                .eq("building_id", str(building_id))
                 .execute()
             )
-            break
+            return
         except APIError as exc:
             # A collision in 31^10 codes is next to impossible, but not impossible.
             if exc.code != UNIQUE_VIOLATION or attempt == ROTATE_ATTEMPTS - 1:
                 raise
-    return await _get_in_building(supabase, flat_id, manager.building_id)
 
 
 @router.get("/{flat_id}/residents")
@@ -131,8 +136,10 @@ async def remove_flat_resident(
     """Remove a resident from the flat: they lose access on their next request.
 
     Their row is kept (flagged `removed_at`), so the requests, status history and
-    channel messages they wrote stay with the building. They can come back only
-    with the flat's current join code - rotate it first if it may have leaked.
+    channel messages they wrote stay with the building. The flat's join code is
+    rotated in the same call: otherwise the removed person could rejoin at once
+    with the code they already have. Other residents of the flat stay linked;
+    the response carries the new code for future members.
     Managers - including the caller - never match, so they cannot be removed here.
     """
     await _get_in_building(supabase, flat_id, manager.building_id)
@@ -148,4 +155,5 @@ async def remove_flat_resident(
     )
     if not response.data:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Resident not found in this flat")
+    await _rotate(supabase, flat_id, manager.building_id)
     return await _get_in_building(supabase, flat_id, manager.building_id)

@@ -199,10 +199,13 @@ def test_removed_resident_rejoins_only_with_current_code(
     first_joined = client.get(url, headers=manager.headers).json()[0]
     assert first_joined["id"] == dana.id
 
-    assert _remove(client, manager.headers, flat["id"], dana.id).status_code == 200
-    rotated = client.post(f"/api/flats/{flat['id']}/rotate-code", headers=manager.headers).json()
+    removed = _remove(client, manager.headers, flat["id"], dana.id)
+    assert removed.status_code == 200
+    # Removal rotates the code by itself: no separate rotate-code call needed.
+    rotated = removed.json()
+    assert rotated["join_code"] != flat["join_code"]
 
-    # The leaked code is dead, so removal sticks.
+    # The code Dana had is dead, so removal sticks.
     assert _join(client, dana.headers, flat["join_code"], "Dana").status_code == 404
     assert client.get("/api/me", headers=dana.headers).json()["resident"] is None
 
