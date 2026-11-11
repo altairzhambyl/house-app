@@ -37,7 +37,7 @@ jobs:
       - uses: astral-sh/setup-uv@v10.3.3
         with:
           working-directory: apps/api
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         with:
           version: 2.95.4
       - name: Install dependencies
