@@ -1,8 +1,9 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Card, ErrorNote, Loaded, SectionHeader } from '../components/ui'
 import { api } from '../lib/api'
 import { useApi } from '../lib/useApi'
-import type { Flat } from '../types'
+import { formatDate } from '../lib/format'
+import type { Flat, FlatResident } from '../types'
 
 // manager only: flat join codes that residents use to link their accounts
 export function FlatsView() {
@@ -19,7 +20,7 @@ export function FlatsView() {
             </div>
             {flats.map((f, i) => (
               <FlatRow key={f.id} flat={f} last={i === flats.length - 1}
-                onRotated={next => setData(list => list.map(x => (x.id === next.id ? next : x)))} />
+                onChanged={next => setData(list => list.map(x => (x.id === next.id ? next : x)))} />
             ))}
           </Card>
         )}
@@ -28,17 +29,18 @@ export function FlatsView() {
   )
 }
 
-function FlatRow({ flat, last, onRotated }: { flat: Flat; last: boolean; onRotated: (f: Flat) => void }) {
+function FlatRow({ flat, last, onChanged }: { flat: Flat; last: boolean; onChanged: (f: Flat) => void }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<unknown>(null)
   const [copied, setCopied] = useState(false)
+  const [open, setOpen] = useState(false)
 
   async function rotate() {
     if (!window.confirm(`Выдать новый код для кв. ${flat.number}? Старый код перестанет работать.`)) return
     setBusy(true)
     setError(null)
     try {
-      onRotated(await api.rotateFlatCode(flat.id))
+      onChanged(await api.rotateFlatCode(flat.id))
     } catch (err) {
       setError(err)
     } finally {
@@ -64,13 +66,109 @@ function FlatRow({ flat, last, onRotated }: { flat: Flat; last: boolean; onRotat
           className="font-mono text-sm tracking-widest text-[#1E2A0E] text-left hover:text-[#A07C12] transition-colors">
           {flat.join_code} <span className="text-[10px] text-[#697050] tracking-normal">{copied ? '✓ скопировано' : '⧉'}</span>
         </button>
-        <span className="font-mono text-sm text-[#697050]">{flat.resident_count}</span>
+        <button onClick={() => setOpen(o => !o)} aria-expanded={open} title="Показать жильцов"
+          className="font-mono text-sm text-[#697050] text-left hover:text-[#A07C12] transition-colors">
+          {flat.resident_count} {open ? '▴' : '▾'}
+        </button>
         <button onClick={() => void rotate()} disabled={busy}
           className="text-xs border border-[#D6D3A8] hover:border-[#2C4A1A] disabled:opacity-60 text-[#2C4A1A] px-3 py-1 rounded font-medium transition-colors">
           {busy ? '…' : 'Новый код'}
         </button>
       </div>
       {error !== null && <div className="mt-1"><ErrorNote error={error} /></div>}
+      {open && <FlatResidents flat={flat} onChanged={onChanged} />}
+    </div>
+  )
+}
+
+type ResidentsState =
+  | { status: 'loading' }
+  | { status: 'error'; error: unknown }
+  | { status: 'ready'; residents: FlatResident[] }
+
+// Residents of one flat, loaded when the manager expands the row.
+function FlatResidents({ flat, onChanged }: { flat: Flat; onChanged: (f: Flat) => void }) {
+  const [state, setState] = useState<ResidentsState>({ status: 'loading' })
+  const [confirming, setConfirming] = useState<string | null>(null)
+  const [removing, setRemoving] = useState<string | null>(null)
+  const [removeError, setRemoveError] = useState<unknown>(null)
+
+  const load = useCallback(async () => {
+    try {
+      setState({ status: 'ready', residents: await api.listFlatResidents(flat.id) })
+    } catch (err) {
+      setState({ status: 'error', error: err })
+    }
+  }, [flat.id])
+
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  async function remove(resident: FlatResident) {
+    setRemoving(resident.id)
+    setRemoveError(null)
+    try {
+      onChanged(await api.removeFlatResident(flat.id, resident.id))
+      setConfirming(null)
+      await load()
+    } catch (err) {
+      setRemoveError(err)
+    } finally {
+      setRemoving(null)
+    }
+  }
+
+  if (state.status === 'loading') {
+    return <p className="mt-2 text-xs font-mono text-[#697050]">Загрузка…</p>
+  }
+  if (state.status === 'error') {
+    return (
+      <div className="mt-2 flex items-center gap-3">
+        <ErrorNote error={state.error} />
+        <button onClick={() => { setState({ status: 'loading' }); void load() }}
+          className="text-xs text-[#2C4A1A] underline">Повторить</button>
+      </div>
+    )
+  }
+  if (state.residents.length === 0) {
+    return <p className="mt-2 text-xs text-[#697050]">Жильцов нет</p>
+  }
+
+  return (
+    <div className="mt-2 border-t border-[#F6F5DC] pt-2">
+      <ul className="space-y-1">
+        {state.residents.map(r => (
+          <li key={r.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+            <span className="text-[#1E2A0E]">{r.full_name}</span>
+            <span className="text-[10px] font-mono text-[#697050]">с {formatDate(r.created_at)}</span>
+            <span className="ml-auto flex items-center gap-2">
+              {confirming === r.id ? (
+                <>
+                  <span className="text-xs text-[#697050]">Удалить из кв. {flat.number}? Заявки и сообщения останутся.</span>
+                  <button onClick={() => void remove(r)} disabled={removing !== null}
+                    className="text-xs border border-red-300 hover:border-red-600 disabled:opacity-60 text-red-700 px-3 py-1 rounded font-medium transition-colors">
+                    {removing === r.id ? '…' : 'Да, удалить'}
+                  </button>
+                  <button onClick={() => setConfirming(null)} disabled={removing !== null}
+                    className="text-xs border border-[#D6D3A8] hover:border-[#2C4A1A] disabled:opacity-60 text-[#2C4A1A] px-3 py-1 rounded font-medium transition-colors">
+                    Отмена
+                  </button>
+                </>
+              ) : (
+                <button onClick={() => { setConfirming(r.id); setRemoveError(null) }} disabled={removing !== null}
+                  className="text-xs border border-[#D6D3A8] hover:border-[#2C4A1A] disabled:opacity-60 text-[#2C4A1A] px-3 py-1 rounded font-medium transition-colors">
+                  Удалить
+                </button>
+              )}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-2 text-[10px] text-[#697050]">
+        Удалённый жилец сразу теряет доступ к дому. Если код квартиры мог утечь, сначала выдайте новый код.
+      </p>
+      {removeError !== null && <div className="mt-1"><ErrorNote error={removeError} /></div>}
     </div>
   )
 }

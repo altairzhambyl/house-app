@@ -89,11 +89,17 @@ def resident_from_row(row: dict[str, Any]) -> ResidentOut:
 
 
 async def load_resident(supabase: AsyncClient, user_id: UUID | str) -> ResidentOut | None:
-    """The user's resident profile, or None if they have not joined a flat yet."""
+    """The user's resident profile, or None if they have not joined a flat yet.
+
+    A resident a manager removed from their flat counts as not joined: their row
+    stays (it keeps their requests and messages), but it grants no access. This
+    runs on every request, so removal takes effect on the user's next call.
+    """
     response = (
         await supabase.table("residents")
         .select(RESIDENT_COLUMNS)
         .eq("id", str(user_id))
+        .is_("removed_at", "null")
         .maybe_single()
         .execute()
     )
