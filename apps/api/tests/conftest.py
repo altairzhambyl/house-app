@@ -201,3 +201,22 @@ def make_account(stack: dict[str, str], make_flat) -> Iterator:
     for user_id in created:
         http.delete(f"/auth/v1/admin/users/{user_id}", headers=admin).raise_for_status()
     http.close()
+
+
+@pytest.fixture(autouse=True)
+def _fresh_rate_limits() -> None:
+    """Every test starts with empty rate-limit counters.
+
+    The whole suite calls the API from one client IP, so without this the
+    per-IP join limit would trip partway through the run. A no-op without a
+    local stack (unit tests still run).
+    """
+    values = _local_stack()
+    if values is None or urlparse(values["API_URL"]).hostname not in {"127.0.0.1", "localhost"}:
+        return
+    httpx.delete(
+        f"{values['API_URL']}/rest/v1/rate_limit_hits",
+        params={"key": "not.is.null"},
+        headers=_admin_headers(values),
+        timeout=10,
+    ).raise_for_status()

@@ -13,6 +13,7 @@ from fastapi import APIRouter, HTTPException, Query, status
 from storage3.exceptions import StorageApiError
 
 from app.deps import CurrentManager, CurrentResident, SupabaseDep
+from app.rate_limit import rate_limited
 from app.schemas import (
     PhotoAttach,
     PhotoType,
@@ -153,7 +154,7 @@ async def list_requests(
     return [_to_out(row) for row in response.data]
 
 
-@router.post("", status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_201_CREATED, dependencies=[rate_limited("request_create")])
 async def create_request(
     body: RequestCreate, supabase: SupabaseDep, resident: CurrentResident
 ) -> RequestOut:
@@ -221,7 +222,7 @@ async def _photo_target(
     return row
 
 
-@router.post("/{request_id}/photo-upload")
+@router.post("/{request_id}/photo-upload", dependencies=[rate_limited("photo_upload")])
 async def create_photo_upload(
     request_id: UUID,
     body: PhotoUploadCreate,

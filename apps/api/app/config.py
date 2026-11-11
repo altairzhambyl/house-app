@@ -17,6 +17,13 @@ class Settings(BaseSettings):
     # credentials yet - they get a clearly-degraded API, not a crash on boot.
     supabase_url: str | None = None
     supabase_service_role_key: str | None = None
+    # Set to "1" by Vercel in every deployment. Turns off the public API docs and
+    # makes the rate limiter trust Vercel's x-real-ip header.
+    vercel: str | None = None
+
+    @property
+    def on_vercel(self) -> bool:
+        return bool(self.vercel)
 
     @property
     def supabase_configured(self) -> bool:

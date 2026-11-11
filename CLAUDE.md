@@ -28,13 +28,18 @@ The backend holds the **service role key**, which bypasses row-level security: s
 never sent to the browser. Credentials live in `apps/api/.env` (gitignored); see `.env.example`.
 They are optional — without them the API still starts and reports `supabase: not configured`.
 
-Still open: where FastAPI is hosted. Vercel covers the Vite build but will not run a Python service.
+## Hosting — DECIDED 2026-11-11
+- Live: https://house-app-blush.vercel.app — one Vercel project (Services: `/api/*` → FastAPI, rest → Vite), region `fra1`.
+- Supabase project `house-app` (Frankfurt, free plan). Migrations are applied by hand with `supabase db push`; CI does not touch production data.
+- CI: `.github/workflows/ci.yml` (typecheck, vitest, ruff, pytest against a throwaway local Supabase — skipped tests fail the job). `prod-smoke.yml` runs read-only checks after each production deploy and weekly.
+- Write endpoints are rate-limited in Postgres (`hit_rate_limit`, limits in `apps/api/app/rate_limit.py`); in-memory limits do not work on serverless.
 
 ## Done means
 `bash scripts/verify.sh` is green. It checks:
 - docs: every expected file in `docs/sis/` exists, is non-empty, has no TODO/TBD, and contains no Cyrillic
 - web: `tsc --noEmit` passes for `apps/web`
-- api: `ruff check` and `pytest` pass for `apps/api`
+- web: vitest unit tests pass
+- api: `ruff check` and `pytest` pass for `apps/api` (integration tests need local Supabase; CI runs them for real)
 
 Docs are also done only when they answer every clause of the syllabus task, are in English, source every factual claim, and match the other assignments (stakeholder names, feature IDs, team roles).
 

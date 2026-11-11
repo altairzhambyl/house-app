@@ -36,7 +36,7 @@ explanation instead of crashing.
 | App | URL | Notes |
 |---|---|---|
 | web | http://localhost:5173 | Vite dev server |
-| api | http://localhost:8000 | FastAPI, `--reload`; docs at `/docs` |
+| api | http://localhost:8000 | FastAPI, `--reload`; docs at `/api/docs` (local only, off on Vercel) |
 
 ### Local database
 
@@ -97,5 +97,13 @@ SMOKE_URL=https://house-app-blush.vercel.app SUPABASE_URL=... SUPABASE_ANON_KEY=
 ```
 
 Database migrations are not applied by CI: push them with `supabase db push` after merging.
+
+## Production hardening
+
+- **Rate limits** on every write endpoint (join, requests, photo upload tickets, messages, announcements, flat admin), counted in Postgres so they hold across serverless instances. Limits live in `apps/api/app/rate_limit.py`; over the limit the API answers `429` with `Retry-After`.
+- **Security headers** on every response (`vercel.json`): `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`, HSTS, and a Content-Security-Policy in report-only mode (switch to enforcing once no violations show up).
+- **API docs** (`/api/docs`) only locally; off on Vercel.
+- **Errors**: unexpected failures return a generic `500` with a `request_id`; every API response carries `X-Request-ID` for log lookup.
+- `/api/health` reports whether the database answers.
 
 See `CLAUDE.md` for project constraints.

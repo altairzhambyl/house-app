@@ -9,6 +9,7 @@ from fastapi import APIRouter, Query, status
 from pydantic import AwareDatetime
 
 from app.deps import CurrentResident, SupabaseDep
+from app.rate_limit import rate_limited
 from app.schemas import MessageCreate, MessageOut
 
 router = APIRouter(prefix="/api/messages", tags=["messages"])
@@ -55,7 +56,7 @@ async def list_messages(
     return [_to_out(row) for row in response.data]
 
 
-@router.post("", status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_201_CREATED, dependencies=[rate_limited("message")])
 async def post_message(
     body: MessageCreate, supabase: SupabaseDep, resident: CurrentResident
 ) -> MessageOut:

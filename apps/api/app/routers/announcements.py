@@ -3,6 +3,7 @@
 from fastapi import APIRouter, HTTPException, status
 
 from app.deps import CurrentResident, SupabaseDep
+from app.rate_limit import rate_limited
 from app.schemas import AnnouncementCreate, AnnouncementOut, Role
 
 router = APIRouter(prefix="/api/announcements", tags=["announcements"])
@@ -24,7 +25,7 @@ async def list_announcements(
     return [AnnouncementOut.model_validate(row) for row in response.data]
 
 
-@router.post("", status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_201_CREATED, dependencies=[rate_limited("announcement")])
 async def create_announcement(
     body: AnnouncementCreate, supabase: SupabaseDep, resident: CurrentResident
 ) -> AnnouncementOut:

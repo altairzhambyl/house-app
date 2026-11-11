@@ -7,6 +7,7 @@ from postgrest.exceptions import APIError
 
 from app import join_codes
 from app.deps import CurrentUser, SupabaseDep, load_resident
+from app.rate_limit import rate_limited
 from app.schemas import JoinRequest, MeOut, ResidentOut
 
 router = APIRouter(prefix="/api", tags=["residents"])
@@ -24,7 +25,7 @@ async def me(supabase: SupabaseDep, user: CurrentUser) -> MeOut:
     )
 
 
-@router.post("/join")
+@router.post("/join", dependencies=[rate_limited("join", ip_action="join_ip")])
 async def join(body: JoinRequest, supabase: SupabaseDep, user: CurrentUser) -> ResidentOut:
     """Link the caller to the flat that owns `code`. Several residents may share a flat.
 
