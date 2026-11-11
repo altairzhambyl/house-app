@@ -21,6 +21,9 @@ import {
   type ServiceRequest,
 } from '../types'
 
+// Ticket from POST /api/requests/{id}/photo-upload (schemas.PhotoUploadOut).
+const PhotoUploadSchema = z.object({ bucket: z.string(), path: z.string(), token: z.string() })
+
 export class ApiError extends Error {
   readonly status: number
   readonly detail: string
@@ -71,7 +74,7 @@ async function handleUnauthorized(): Promise<void> {
   if (error) console.error('Local sign-out after 401 failed', error)
 }
 
-type Body = { json: unknown } | { form: FormData } | undefined
+type Body = { json: unknown } | undefined
 
 async function call<S extends z.ZodType>(
   schema: S,
@@ -90,9 +93,6 @@ async function call<S extends z.ZodType>(
   if (body && 'json' in body) {
     headers['Content-Type'] = 'application/json'
     payload = JSON.stringify(body.json)
-  } else if (body && 'form' in body) {
-    // No Content-Type: the browser sets multipart/form-data with the boundary.
-    payload = body.form
   }
 
   let response: Response
@@ -156,10 +156,22 @@ export const api = {
   createRequest: (body: RequestCreate): Promise<ServiceRequest> =>
     call(ServiceRequestSchema, 'POST', '/api/requests', { json: body }),
 
-  uploadRequestPhoto: (id: string, photo: File): Promise<ServiceRequest> => {
-    const form = new FormData()
-    form.append('photo', photo)
-    return call(ServiceRequestSchema, 'PUT', `/api/requests/${encodeURIComponent(id)}/photo`, { form })
+  // Three steps so the bytes go straight to Supabase Storage, not through the API
+  // (Vercel caps function bodies at 4.5 MB): get a signed upload ticket, upload,
+  // then attach. The bucket enforces the size and type limits server-side.
+  uploadRequestPhoto: async (id: string, photo: File): Promise<ServiceRequest> => {
+    const base = `/api/requests/${encodeURIComponent(id)}`
+    const ticket = await call(PhotoUploadSchema, 'POST', `${base}/photo-upload`, {
+      json: { content_type: photo.type },
+    })
+    const { error } = await getSupabase()
+      .storage.from(ticket.bucket)
+      .uploadToSignedUrl(ticket.path, ticket.token, photo, { contentType: photo.type })
+    if (error) {
+      console.error(`Photo upload to storage failed for request ${id}`, error)
+      throw new ApiError(502, `Не удалось загрузить фото: ${error.message}`)
+    }
+    return call(ServiceRequestSchema, 'PUT', `${base}/photo`, { json: { path: ticket.path } })
   },
 
   setRequestStatus: (id: string, status: RequestStatus): Promise<ServiceRequest> =>

@@ -5,14 +5,19 @@ role key, so this filter - not RLS - is what keeps buildings apart here.
 """
 
 import logging
+import re
 from typing import Annotated, Any
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, HTTPException, Query, status
 from storage3.exceptions import StorageApiError
 
 from app.deps import CurrentManager, CurrentResident, SupabaseDep
 from app.schemas import (
+    PhotoAttach,
+    PhotoType,
+    PhotoUploadCreate,
+    PhotoUploadOut,
     RequestCreate,
     RequestDetailOut,
     RequestEvent,
@@ -27,9 +32,7 @@ router = APIRouter(prefix="/api/requests", tags=["requests"])
 
 PHOTO_BUCKET = "request-photos"
 PHOTO_URL_TTL_SECONDS = 3600
-# Vercel Functions reject request bodies over 4.5 MB, so the cap sits below that.
-MAX_PHOTO_BYTES = 4 * 1024 * 1024
-PHOTO_TYPES = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}
+PHOTO_EXTENSIONS = {PhotoType.jpeg: "jpg", PhotoType.png: "png", PhotoType.webp: "webp"}
 
 COLUMNS = (
     "id, number, building_id, flat_id, author_id, category, description, "
@@ -208,36 +211,65 @@ async def update_status(
     return await _detail(supabase, row)
 
 
-@router.put("/{request_id}/photo")
-async def upload_photo(
-    request_id: UUID, photo: UploadFile, supabase: SupabaseDep, resident: CurrentResident
-) -> RequestDetailOut:
-    """Attach (or replace) the request's photo. Author or a building manager only."""
+async def _photo_target(
+    supabase: SupabaseDep, request_id: UUID, resident: CurrentResident
+) -> dict[str, Any]:
+    """The request row, if the caller may change its photo: author or a building manager."""
     row = await _get_in_building(supabase, request_id, resident.building_id)
     if row["author_id"] != str(resident.id) and resident.role is not Role.manager:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Only the author can add a photo")
+    return row
 
-    extension = PHOTO_TYPES.get(photo.content_type or "")
-    if extension is None:
-        raise HTTPException(
-            status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, "Photo must be JPEG, PNG or WebP"
-        )
-    # Read one byte past the limit to detect oversize without trusting headers.
-    data = await photo.read(MAX_PHOTO_BYTES + 1)
-    if len(data) > MAX_PHOTO_BYTES:
-        raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, "Photo must be 4 MB or smaller")
-    if not data:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Photo is empty")
 
-    bucket = supabase.storage.from_(PHOTO_BUCKET)
-    path = f"{row['building_id']}/{row['id']}/{uuid4()}.{extension}"
+@router.post("/{request_id}/photo-upload")
+async def create_photo_upload(
+    request_id: UUID,
+    body: PhotoUploadCreate,
+    supabase: SupabaseDep,
+    resident: CurrentResident,
+) -> PhotoUploadOut:
+    """Step 1 of 2: a signed URL for uploading the photo straight to Storage.
+
+    The bytes never pass through this API (Vercel caps function bodies at 4.5 MB).
+    The bucket itself enforces the 5 MB size and the JPEG/PNG/WebP types.
+    """
+    row = await _photo_target(supabase, request_id, resident)
+    path = f"{row['building_id']}/{row['id']}/{uuid4()}.{PHOTO_EXTENSIONS[body.content_type]}"
     try:
-        await bucket.upload(path, data, {"content-type": photo.content_type or ""})
+        signed = await supabase.storage.from_(PHOTO_BUCKET).create_signed_upload_url(path)
     except StorageApiError as exc:
         raise HTTPException(
-            status.HTTP_502_BAD_GATEWAY, f"Photo upload for request {request_id} failed"
+            status.HTTP_502_BAD_GATEWAY,
+            f"Could not prepare a photo upload for request {request_id}",
         ) from exc
+    return PhotoUploadOut(bucket=PHOTO_BUCKET, path=path, token=signed["token"])
 
+
+@router.put("/{request_id}/photo")
+async def attach_photo(
+    request_id: UUID, body: PhotoAttach, supabase: SupabaseDep, resident: CurrentResident
+) -> RequestDetailOut:
+    """Step 2 of 2: attach (or replace) the photo uploaded in step 1."""
+    row = await _photo_target(supabase, request_id, resident)
+    # Only a path this endpoint could have issued for this request is accepted:
+    # the service role can read any object, so a foreign path would leak it.
+    folder = re.escape(f"{row['building_id']}/{row['id']}/")
+    if not re.fullmatch(rf"{folder}[0-9a-f-]{{36}}\.(jpg|png|webp)", body.path):
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT, "Photo path does not belong to this request"
+        )
+    if body.path == row.get("photo_path"):
+        return await _detail(supabase, row)
+
+    bucket = supabase.storage.from_(PHOTO_BUCKET)
+    try:
+        uploaded = await bucket.exists(body.path)
+    except StorageApiError:
+        uploaded = False
+    if not uploaded:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Photo was not uploaded")
+
+    path = body.path
     await supabase.table("requests").update({"photo_path": path}).eq("id", row["id"]).execute()
     # The old object is unreferenced now; failing to delete it only costs storage.
     old_path = _own_photo_path(row)
