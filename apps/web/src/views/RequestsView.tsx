@@ -3,6 +3,8 @@ import { RequestRow } from '../components/RequestRow'
 import { Empty, ErrorBox, ErrorNote, Loading, SectionHeader } from '../components/ui'
 import { api } from '../lib/api'
 import type { Resident, ServiceRequest } from '../types'
+import { useT } from '../i18n'
+import { m } from './RequestsView.i18n'
 
 const PAGE_SIZE = 20
 
@@ -24,6 +26,7 @@ export function RequestsView({ resident, onOpenRequest, changed }: {
   // The latest request edited in the detail view; replaces its row in place.
   changed: ServiceRequest | null
 }) {
+  const t = useT(m)
   // Without a flat (managers) there are no "own" requests to show.
   const tabs: Tab[] = resident.flat_id === null ? ['all'] : ['mine', 'all']
   const [tab, setTab] = useState<Tab>(tabs[0])
@@ -67,14 +70,14 @@ export function RequestsView({ resident, onOpenRequest, changed }: {
 
   return (
     <div>
-      <SectionHeader title="Заявки" sub="История и статус обращений" />
+      <SectionHeader title={t('title')} sub={t('sub')} />
       {tabs.length > 1 && (
         <div className="flex gap-1 mb-5 bg-white border border-[#D6D3A8] rounded-md p-1 w-fit">
-          {tabs.map(t => (
-            <button key={t}
-              onClick={() => setTab(t)}
-              className={`px-4 py-1.5 rounded text-sm font-medium transition-colors ${tab === t ? 'bg-[#2C4A1A] text-white' : 'text-[#697050] hover:text-[#1E2A0E]'}`}
-            >{t === 'mine' ? 'Мои заявки' : 'Все заявки дома'}</button>
+          {tabs.map(id => (
+            <button key={id}
+              onClick={() => setTab(id)}
+              className={`px-4 py-1.5 rounded text-sm font-medium transition-colors ${tab === id ? 'bg-[#2C4A1A] text-white' : 'text-[#697050] hover:text-[#1E2A0E]'}`}
+            >{id === 'mine' ? t('tabMine') : t('tabAll')}</button>
           ))}
         </div>
       )}
@@ -82,7 +85,7 @@ export function RequestsView({ resident, onOpenRequest, changed }: {
       {firstLoad && state.loading && <Loading />}
       {firstLoad && state.error !== null && <ErrorBox error={state.error} onRetry={() => loadPage(tab, 0)} />}
       {firstLoad && !state.loading && state.error === null && (
-        <Empty>{tab === 'mine' ? 'Вы ещё не подавали заявок' : 'В доме пока нет заявок'}</Empty>
+        <Empty>{tab === 'mine' ? t('emptyMine') : t('emptyAll')}</Empty>
       )}
 
       {!firstLoad && (
@@ -95,7 +98,7 @@ export function RequestsView({ resident, onOpenRequest, changed }: {
               disabled={state.loading}
               className="w-full border border-[#D6D3A8] bg-white hover:border-[#2C4A1A] disabled:opacity-60 rounded-md py-2 text-sm text-[#2C4A1A] font-medium transition-colors"
             >
-              {state.loading ? 'Загрузка…' : state.error !== null ? 'Повторить' : 'Загрузить ещё'}
+              {state.loading ? t('loading') : state.error !== null ? t('retry') : t('loadMore')}
             </button>
           )}
         </div>

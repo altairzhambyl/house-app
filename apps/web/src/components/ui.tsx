@@ -1,25 +1,42 @@
 import type { ReactNode } from 'react'
-import { errorMessage } from '../lib/api'
+import { defineMessages, useT } from '../i18n'
+import { useDescribeError, type ErrorOverrides } from '../lib/api'
+import type { Tone } from '../lib/format'
 import type { LoadState } from '../lib/useApi'
 
-//color palettes
-const STATUS_COLORS: Record<string, string> = {
-  // request statuses (real data, Russian labels from lib/format.ts)
-  'Новая': 'bg-amber-100 text-amber-800',
-  'В работе': 'bg-blue-100 text-blue-800',
-  'Выполнена': 'bg-emerald-100 text-emerald-800',
-  // demo views
-  'Pending': 'bg-amber-100 text-amber-800',
-  'In Progress': 'bg-blue-100 text-blue-800',
-  'Done': 'bg-emerald-100 text-emerald-800',
-  'Active': 'bg-red-100 text-red-800',
-  'Upcoming': 'bg-amber-100 text-amber-800',
-  'Open': 'bg-blue-100 text-blue-800',
-  'Closed': 'bg-gray-100 text-gray-600',
-  'Under review': 'bg-amber-100 text-amber-800',
-  'Resolved': 'bg-emerald-100 text-emerald-800',
-  'Paid': 'bg-emerald-100 text-emerald-800',
-  'Due': 'bg-red-100 text-red-800',
+const m = defineMessages({
+  ru: {
+    demo: 'Демо-данные',
+    loading: 'Загрузка…',
+    loadFailed: 'Не удалось загрузить данные',
+    retry: 'Повторить',
+    empty: 'Пока пусто',
+    details: 'Подробности',
+  },
+  kk: {
+    demo: 'Демо деректер',
+    loading: 'Жүктелуде…',
+    loadFailed: 'Деректерді жүктеу мүмкін болмады',
+    retry: 'Қайталау',
+    empty: 'Әзірге бос',
+    details: 'Толығырақ',
+  },
+  en: {
+    demo: 'Demo data',
+    loading: 'Loading…',
+    loadFailed: 'Couldn’t load the data',
+    retry: 'Try again',
+    empty: 'Nothing here yet',
+    details: 'Details',
+  },
+})
+
+const TONE_CLS: Record<Tone, string> = {
+  amber: 'bg-amber-100 text-amber-800',
+  blue: 'bg-blue-100 text-blue-800',
+  green: 'bg-emerald-100 text-emerald-800',
+  red: 'bg-red-100 text-red-800',
+  gray: 'bg-gray-100 text-gray-600',
 }
 
 export const inputCls =
@@ -27,16 +44,18 @@ export const inputCls =
 export const labelCls = 'text-xs font-mono text-[#697050] uppercase tracking-wider block mb-1.5'
 
 // other small comp.
-export function Badge({ label }: { label: string }) {
-  const cls = STATUS_COLORS[label] ?? 'bg-gray-100 text-gray-600'
+/** Status pill. Pass a translated `label` and a `tone` (see STATUS_TONE in lib/format). */
+export function Badge({ label, tone }: { label: string; tone: Tone }) {
+  const cls = TONE_CLS[tone]
   return <span className={`inline-block px-2 py-0.5 rounded text-xs font-mono font-medium ${cls}`}>{label}</span>
 }
 
 // Marks views that still run on mock data so nobody mistakes them for real.
 export function DemoBadge() {
+  const t = useT(m)
   return (
     <span className="inline-block align-middle ml-3 px-2 py-0.5 rounded text-[11px] font-mono font-semibold bg-[#A07C12] text-white tracking-normal">
-      Демо-данные
+      {t('demo')}
     </span>
   )
 }
@@ -61,24 +80,51 @@ export function Card({ children, className = '' }: { children: ReactNode; classN
   )
 }
 
-export function ErrorNote({ error }: { error: unknown }) {
-  return <p className="text-red-600 text-xs" role="alert">{errorMessage(error)}</p>
+// Server/library detail is usually English: shown smaller, marked lang="en".
+function ErrorDetail({ detail, className }: { detail: string | null; className: string }) {
+  const t = useT(m)
+  if (!detail) return null
+  return <span className={`block font-mono opacity-75 break-words ${className}`}>{t('details')}: <span lang="en">{detail}</span></span>
 }
 
-export function Loading({ label = 'Загрузка…' }: { label?: string }) {
-  return <Card className="p-6 text-center text-sm text-[#697050] font-mono" >{label}</Card>
+/** Inline error for a failed action. Store the caught error itself, not a string. */
+export function ErrorNote({ error, overrides }: { error: unknown; overrides?: ErrorOverrides }) {
+  const describe = useDescribeError()
+  const { message, detail } = describe(error, overrides)
+  return (
+    <p className="text-red-600 text-xs" role="alert">
+      {message}
+      <ErrorDetail detail={detail} className="text-[10px] mt-0.5" />
+    </p>
+  )
 }
 
-export function ErrorBox({ error, onRetry }: { error: unknown; onRetry: () => void }) {
+export function Loading({ label }: { label?: string }) {
+  const t = useT(m)
+  return <Card className="p-6 text-center text-sm text-[#697050] font-mono" >{label ?? t('loading')}</Card>
+}
+
+export function ErrorBox({ error, onRetry, title, overrides }: {
+  error: unknown
+  onRetry: () => void
+  title?: string
+  overrides?: ErrorOverrides
+}) {
+  const t = useT(m)
+  const describe = useDescribeError()
+  const { message, detail } = describe(error, overrides)
   return (
     <div className="bg-red-50 border border-red-200 rounded-md p-4" role="alert">
-      <div className="text-sm font-semibold text-red-800 mb-1">Не удалось загрузить данные</div>
-      <p className="text-xs text-red-700 mb-3">{errorMessage(error)}</p>
+      <div className="text-sm font-semibold text-red-800 mb-1">{title ?? t('loadFailed')}</div>
+      <p className="text-xs text-red-700 mb-3">
+        {message}
+        <ErrorDetail detail={detail} className="text-[10px] mt-1" />
+      </p>
       <button
         onClick={onRetry}
         className="text-xs bg-red-100 hover:bg-red-200 text-red-800 px-3 py-1.5 rounded font-medium transition-colors"
       >
-        Повторить
+        {t('retry')}
       </button>
     </div>
   )
@@ -102,8 +148,9 @@ export function Loaded<T>({
   empty?: ReactNode
   children: (data: T) => ReactNode
 }) {
+  const t = useT(m)
   if (state.status === 'loading') return <Loading />
   if (state.status === 'error') return <ErrorBox error={state.error} onRetry={onRetry} />
-  if (isEmpty?.(state.data)) return <Empty>{empty ?? 'Пока пусто'}</Empty>
+  if (isEmpty?.(state.data)) return <Empty>{empty ?? t('empty')}</Empty>
   return <>{children(state.data)}</>
 }

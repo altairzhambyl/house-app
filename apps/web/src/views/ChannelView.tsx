@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react'
 import { ErrorBox, ErrorNote, Loading } from '../components/ui'
+import { useLocale, useT } from '../i18n'
 import { api } from '../lib/api'
-import { formatMessageTime } from '../lib/format'
+import { m as msgs } from './ChannelView.i18n'
 import type { Message, Resident } from '../types'
 
 const PAGE_SIZE = 50
@@ -31,6 +32,7 @@ type ScrollIntent = 'bottom' | { preserveFrom: number } | null
 
 // building channel — replaces the ЖК WhatsApp group
 export function ChannelView({ resident }: { resident: Resident }) {
+  const t = useT(msgs)
   const [messages, setMessages] = useState<Message[]>([])
   const [initial, setInitial] = useState<{ loading: boolean; error: unknown }>({ loading: true, error: null })
   const [hasOlder, setHasOlder] = useState(false)
@@ -122,13 +124,13 @@ export function ChannelView({ resident }: { resident: Resident }) {
       {initial.loading && <Loading />}
       {initial.error !== null && <ErrorBox error={initial.error} onRetry={() => void loadInitial()} />}
       {!initial.loading && initial.error === null && (
-        <section aria-label="Чат дома"
+        <section aria-label={t('title')}
           className="flex flex-col h-[calc(100dvh-5.5rem)] md:h-[calc(100dvh-3rem)] min-h-[320px] bg-white border border-[#DEDBB7] rounded-[14px] overflow-hidden shadow-[0_8px_30px_#2c4a1a0b]">
           <header className="flex items-center gap-3 md:gap-3.5 px-4 md:px-6 py-3 md:py-4 border-b border-[#E8E7D5] shrink-0">
             <div className="w-10 h-10 md:w-12 md:h-12 grid place-items-center bg-[#E7EEDF] text-[#2C4A1A] rounded-[15px] text-lg md:text-xl shrink-0" aria-hidden>👥</div>
             <div className="flex-1 min-w-0">
-              <h1 className="text-[17px] md:text-[19px] font-bold truncate text-[#2C4A1A]">Чат дома</h1>
-              <p className="text-xs text-[#697050] mt-0.5 line-clamp-2 break-words">{resident.building_name} · соседи и управляющая компания</p>
+              <h1 className="text-[17px] md:text-[19px] font-bold truncate text-[#2C4A1A]">{t('title')}</h1>
+              <p className="text-xs text-[#697050] mt-0.5 line-clamp-2 break-words">{t('sub', { building: resident.building_name })}</p>
             </div>
           </header>
           <div ref={listRef} role="log" aria-live="polite" aria-relevant="additions"
@@ -137,19 +139,19 @@ export function ChannelView({ resident }: { resident: Resident }) {
               <div className="text-center">
                 <button onClick={() => void loadOlder()} disabled={olderState.loading}
                   className="text-xs text-[#A07C12] hover:underline disabled:opacity-60">
-                  {olderState.loading ? 'Загрузка…' : 'Показать более ранние сообщения'}
+                  {olderState.loading ? t('loading') : t('loadOlder')}
                 </button>
                 {olderState.error !== null && <ErrorNote error={olderState.error} />}
               </div>
             )}
             {messages.length === 0 && (
-              <p className="m-auto text-center text-sm text-[#697050]">Сообщений пока нет. Напишите первым!</p>
+              <p className="m-auto text-center text-sm text-[#697050]">{t('empty')}</p>
             )}
             {messages.map(m => <MessageBubble key={m.id} m={m} own={m.author_id === resident.id} />)}
           </div>
           {pollError !== null && (
             <div className="px-4 py-1.5 bg-amber-50 border-t border-amber-200 text-[11px] text-amber-800">
-              Не удаётся обновить чат — повторим через несколько секунд.
+              {t('pollFailed')}
             </div>
           )}
           <SendBox onSent={onSent} />
@@ -173,7 +175,9 @@ function Avatar({ name }: { name: string }) {
 }
 
 function MessageBubble({ m, own }: { m: Message; own: boolean }) {
-  const who = own ? 'Вы' : [m.author_name, m.role === 'manager' ? 'УК' : m.flat_number ? `кв. ${m.flat_number}` : null]
+  const t = useT(msgs)
+  const { formatMessageTime } = useLocale()
+  const who = own ? t('you') : [m.author_name, m.role === 'manager' ? t('management') : m.flat_number ? t('flat', { flat: m.flat_number }) : null]
     .filter(Boolean)
     .join(' · ')
   return (
@@ -198,6 +202,7 @@ function SendBox({ onSent }: { onSent: (m: Message) => void }) {
   const [body, setBody] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<unknown>(null)
+  const t = useT(msgs)
 
   async function send(e?: FormEvent) {
     e?.preventDefault()
@@ -223,10 +228,10 @@ function SendBox({ onSent }: { onSent: (m: Message) => void }) {
       {error !== null && <div className="mb-2"><ErrorNote error={error} /></div>}
       <div className="flex gap-2">
         <textarea
-          aria-label="Сообщение"
+          aria-label={t('messageLabel')}
           className="flex-1 min-w-0 border border-[#D6D3A8] rounded-[9px] px-3 md:px-4 py-3 text-sm focus:outline-none focus:border-[#2C4A1A] resize-none h-12"
           aria-describedby="composer-hint"
-          placeholder="Написать соседям…"
+          placeholder={t('placeholder')}
           maxLength={MAX_BODY}
           value={body}
           onChange={e => setBody(e.target.value)}
@@ -239,11 +244,11 @@ function SendBox({ onSent }: { onSent: (m: Message) => void }) {
         />
         <button type="submit" disabled={busy || !body.trim()}
           className="bg-[#A07C12] hover:bg-[#836208] disabled:opacity-60 text-white font-semibold rounded-[9px] px-3 md:px-5 text-sm shrink-0 transition-colors">
-          {busy ? '…' : 'Отправить'}
+          {busy ? '…' : t('send')}
         </button>
       </div>
       <p id="composer-hint" className="sr-only md:not-sr-only md:mt-1.5 text-[11px] text-[#697050]">
-        Enter — отправить, Shift+Enter — новая строка
+        {t('hint')}
       </p>
     </form>
   )

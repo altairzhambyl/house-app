@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { Sidebar, visibleViews } from './components/Sidebar'
 import { ErrorBox, Loading } from './components/ui'
+import { defineMessages, useT } from './i18n'
 import { api } from './lib/api'
 import { getSupabase, supabaseConfigError } from './lib/supabase'
 import { useApi } from './lib/useApi'
@@ -21,6 +22,12 @@ import { ReportView } from './views/ReportView'
 import { RequestDetailView } from './views/RequestDetailView'
 import { RequestsView } from './views/RequestsView'
 import { VotingView } from './views/VotingView'
+
+const m = defineMessages({
+  ru: { logout: '← Выйти', notConfigured: 'Приложение не настроено' },
+  kk: { logout: '← Шығу', notConfigured: 'Қосымша бапталмаған' },
+  en: { logout: '← Sign out', notConfigured: 'The app is not configured' },
+})
 
 type AuthState = { status: 'loading' } | { status: 'signed-out' } | { status: 'signed-in'; session: Session }
 
@@ -45,8 +52,13 @@ function FullScreen({ children }: { children: ReactNode }) {
 
 // MAIN
 export default function App() {
+  const t = useT(m)
   if (supabaseConfigError !== null) {
-    return <FullScreen><ErrorBox error={new Error(supabaseConfigError)} onRetry={() => window.location.reload()} /></FullScreen>
+    return (
+      <FullScreen>
+        <ErrorBox title={t('notConfigured')} error={new Error(supabaseConfigError)} onRetry={() => window.location.reload()} />
+      </FullScreen>
+    )
   }
   return <AuthGate />
 }
@@ -81,6 +93,7 @@ function AuthGate() {
 }
 
 function SignedIn() {
+  const t = useT(m)
   const { state, reload, setData } = useApi(useCallback(() => api.me(), []))
 
   if (state.status === 'loading') return <FullScreen><Loading /></FullScreen>
@@ -89,7 +102,7 @@ function SignedIn() {
       <FullScreen>
         <ErrorBox error={state.error} onRetry={reload} />
         <p className="text-center mt-4">
-          <button onClick={() => void signOut()} className="text-[#697050] text-xs hover:text-[#1E2A0E]">← Выйти</button>
+          <button onClick={() => void signOut()} className="text-[#697050] text-xs hover:text-[#1E2A0E]">{t('logout')}</button>
         </p>
       </FullScreen>
     )
@@ -108,6 +121,8 @@ function SignedIn() {
 }
 
 function Shell({ resident }: { resident: Resident }) {
+  // Subscribing here re-renders every view on a language switch.
+  useT(m)
   const [view, setView] = useState<View>('dashboard')
   const [openRequestId, setOpenRequestId] = useState<string | null>(null)
   const [changedRequest, setChangedRequest] = useState<ServiceRequest | null>(null)
