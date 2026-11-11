@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { getSupabase } from './supabase'
 import {
   AnnouncementSchema,
+  FlatResidentSchema,
   FlatSchema,
   MeSchema,
   MessageSchema,
@@ -13,6 +14,7 @@ import {
   type Announcement,
   type AnnouncementCreate,
   type Flat,
+  type FlatResident,
   type Me,
   type Message,
   type RequestCreate,
@@ -78,7 +80,7 @@ type Body = { json: unknown } | undefined
 
 async function call<S extends z.ZodType>(
   schema: S,
-  method: 'GET' | 'POST' | 'PUT' | 'PATCH',
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
   path: string,
   body?: Body,
 ): Promise<z.infer<S>> {
@@ -146,6 +148,17 @@ export const api = {
 
   rotateFlatCode: (flatId: string): Promise<Flat> =>
     call(FlatSchema, 'POST', `/api/flats/${encodeURIComponent(flatId)}/rotate-code`),
+
+  listFlatResidents: (flatId: string): Promise<FlatResident[]> =>
+    call(z.array(FlatResidentSchema), 'GET', `/api/flats/${encodeURIComponent(flatId)}/residents`),
+
+  // Returns the flat with its updated resident count. The resident's requests and messages stay.
+  removeFlatResident: (flatId: string, residentId: string): Promise<Flat> =>
+    call(
+      FlatSchema,
+      'DELETE',
+      `/api/flats/${encodeURIComponent(flatId)}/residents/${encodeURIComponent(residentId)}`,
+    ),
 
   listRequests: (opts: { mine: boolean; limit: number; offset: number }): Promise<ServiceRequest[]> =>
     call(z.array(ServiceRequestSchema), 'GET', `/api/requests${query(opts)}`),

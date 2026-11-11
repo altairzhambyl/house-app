@@ -1,9 +1,10 @@
-"""Flats of the manager's building and their join codes.
+"""Flats of the manager's building, their join codes and their residents.
 
 Join codes are credentials, so only managers of the flat's building see them.
 """
 
 import re
+from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID
 
@@ -12,11 +13,13 @@ from postgrest.exceptions import APIError
 
 from app import join_codes
 from app.deps import CurrentManager, SupabaseDep
-from app.schemas import FlatOut
+from app.schemas import FlatOut, FlatResidentOut
 
 router = APIRouter(prefix="/api/flats", tags=["flats"])
 
 COLUMNS = "id, number, join_code, residents(count)"
+# Applied to the embedded count: removed residents no longer live in the flat.
+ACTIVE_RESIDENTS = ("residents.removed_at", "null")
 # PostgREST caps a response at max_rows (supabase/config.toml); page past it.
 PAGE_SIZE = 1000
 UNIQUE_VIOLATION = "23505"
@@ -38,6 +41,7 @@ async def _get_in_building(supabase: SupabaseDep, flat_id: UUID, building_id: UU
     response = (
         await supabase.table("flats")
         .select(COLUMNS)
+        .is_(*ACTIVE_RESIDENTS)
         .eq("id", str(flat_id))
         .eq("building_id", str(building_id))
         .maybe_single()
@@ -57,6 +61,7 @@ async def list_flats(supabase: SupabaseDep, manager: CurrentManager) -> list[Fla
         response = (
             await supabase.table("flats")
             .select(COLUMNS)
+            .is_(*ACTIVE_RESIDENTS)
             .eq("building_id", str(manager.building_id))
             .order("id")
             .range(len(flats), len(flats) + PAGE_SIZE - 1)
@@ -70,7 +75,11 @@ async def list_flats(supabase: SupabaseDep, manager: CurrentManager) -> list[Fla
 
 @router.post("/{flat_id}/rotate-code")
 async def rotate_code(flat_id: UUID, supabase: SupabaseDep, manager: CurrentManager) -> FlatOut:
-    """Replace the flat's join code, e.g. after it leaked. Existing residents stay linked."""
+    """Replace the flat's join code, e.g. after it leaked.
+
+    Residents who already joined stay linked; remove them one by one with
+    DELETE /api/flats/{flat_id}/residents/{resident_id}.
+    """
     await _get_in_building(supabase, flat_id, manager.building_id)
     for attempt in range(ROTATE_ATTEMPTS):
         try:
@@ -86,4 +95,57 @@ async def rotate_code(flat_id: UUID, supabase: SupabaseDep, manager: CurrentMana
             # A collision in 31^10 codes is next to impossible, but not impossible.
             if exc.code != UNIQUE_VIOLATION or attempt == ROTATE_ATTEMPTS - 1:
                 raise
+    return await _get_in_building(supabase, flat_id, manager.building_id)
+
+
+@router.get("/{flat_id}/residents")
+async def list_flat_residents(
+    flat_id: UUID, supabase: SupabaseDep, manager: CurrentManager
+) -> list[FlatResidentOut]:
+    """The flat's active residents, oldest first. Managers of its building only."""
+    await _get_in_building(supabase, flat_id, manager.building_id)
+    residents: list[FlatResidentOut] = []
+    while True:
+        response = (
+            await supabase.table("residents")
+            .select("id, full_name, created_at")
+            .eq("flat_id", str(flat_id))
+            .eq("building_id", str(manager.building_id))
+            .eq("role", "resident")
+            .is_("removed_at", "null")
+            .order("created_at")
+            .order("id")
+            .range(len(residents), len(residents) + PAGE_SIZE - 1)
+            .execute()
+        )
+        residents.extend(FlatResidentOut.model_validate(row) for row in response.data)
+        if len(response.data) < PAGE_SIZE:
+            break
+    return residents
+
+
+@router.delete("/{flat_id}/residents/{resident_id}")
+async def remove_flat_resident(
+    flat_id: UUID, resident_id: UUID, supabase: SupabaseDep, manager: CurrentManager
+) -> FlatOut:
+    """Remove a resident from the flat: they lose access on their next request.
+
+    Their row is kept (flagged `removed_at`), so the requests, status history and
+    channel messages they wrote stay with the building. They can come back only
+    with the flat's current join code - rotate it first if it may have leaked.
+    Managers - including the caller - never match, so they cannot be removed here.
+    """
+    await _get_in_building(supabase, flat_id, manager.building_id)
+    response = (
+        await supabase.table("residents")
+        .update({"removed_at": datetime.now(timezone.utc).isoformat()})
+        .eq("id", str(resident_id))
+        .eq("flat_id", str(flat_id))
+        .eq("building_id", str(manager.building_id))
+        .eq("role", "resident")
+        .is_("removed_at", "null")
+        .execute()
+    )
+    if not response.data:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Resident not found in this flat")
     return await _get_in_building(supabase, flat_id, manager.building_id)
