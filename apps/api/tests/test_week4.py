@@ -242,6 +242,6 @@ def test_photo_rules(client: TestClient, make_account) -> None:
         return client.put(url, headers=headers, files={"photo": ("f", content, mime)}).status_code
 
     assert put(alice.headers, b"not an image", "text/plain") == 415
-    assert put(alice.headers, b"\x00" * (5 * 1024 * 1024 + 1), "image/png") == 413
+    assert put(alice.headers, b"\x00" * (4 * 1024 * 1024 + 1), "image/png") == 413
     assert put(neighbour.headers, _png(), "image/png") == 403
     assert put(outsider.headers, _png(), "image/png") == 404

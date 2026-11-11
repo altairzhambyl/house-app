@@ -6,14 +6,14 @@ import { RequestCategorySchema, type RequestCategory, type ServiceRequest } from
 
 // Same limits the API enforces (routers/requests.py); checked here first so the
 // user gets instant feedback instead of a failed upload.
-const MAX_PHOTO_BYTES = 5 * 1024 * 1024
+const MAX_PHOTO_BYTES = 4 * 1024 * 1024
 const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const MAX_DESCRIPTION = 2000
 const MAX_LOCATION = 200
 
 function photoProblem(file: File): string | null {
   if (!PHOTO_TYPES.includes(file.type)) return 'Фото должно быть в формате JPEG, PNG или WebP'
-  if (file.size > MAX_PHOTO_BYTES) return 'Фото должно быть не больше 5 МБ'
+  if (file.size > MAX_PHOTO_BYTES) return 'Фото должно быть не больше 4 МБ'
   if (file.size === 0) return 'Файл пустой'
   return null
 }
@@ -179,7 +179,7 @@ export function ReportView({ onOpenRequest }: { onOpenRequest: (id: string) => v
                 <input type="file" accept={PHOTO_TYPES.join(',')} className="sr-only" onChange={pickPhoto} />
                 {photo
                   ? <span className="text-sm text-[#2C4A1A] font-medium break-all">✓ {photo.name} прикреплено</span>
-                  : <span className="text-sm text-[#697050]">Нажмите чтобы прикрепить фото (JPEG, PNG, WebP, до 5 МБ)</span>
+                  : <span className="text-sm text-[#697050]">Нажмите чтобы прикрепить фото (JPEG, PNG, WebP, до 4 МБ)</span>
                 }
               </label>
               {photo && (

@@ -27,7 +27,8 @@ router = APIRouter(prefix="/api/requests", tags=["requests"])
 
 PHOTO_BUCKET = "request-photos"
 PHOTO_URL_TTL_SECONDS = 3600
-MAX_PHOTO_BYTES = 5 * 1024 * 1024
+# Vercel Functions reject request bodies over 4.5 MB, so the cap sits below that.
+MAX_PHOTO_BYTES = 4 * 1024 * 1024
 PHOTO_TYPES = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}
 
 COLUMNS = (
@@ -224,7 +225,7 @@ async def upload_photo(
     # Read one byte past the limit to detect oversize without trusting headers.
     data = await photo.read(MAX_PHOTO_BYTES + 1)
     if len(data) > MAX_PHOTO_BYTES:
-        raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, "Photo must be 5 MB or smaller")
+        raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, "Photo must be 4 MB or smaller")
     if not data:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Photo is empty")
 
