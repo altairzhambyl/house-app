@@ -75,9 +75,8 @@ export function ComplaintsView() {
                 </div>
                 <p className="text-sm font-medium text-[#1E2A0E]">{L(c.subject)}</p>
                 <p className="text-xs text-[#697050] mt-0.5">
-                  {c.aboutFlat === null
-                    ? t('fromToCommon', { from: c.fromFlat })
-                    : t('fromTo', { from: c.fromFlat, about: c.aboutFlat })}
+                  {/* Only the target: the sender's flat is for the manager's eyes (ITP-54). */}
+                  {c.aboutFlat === null ? t('aboutCommon') : t('aboutFlatTarget', { about: c.aboutFlat })}
                 </p>
               </div>
             </div>
