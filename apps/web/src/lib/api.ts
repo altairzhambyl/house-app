@@ -204,7 +204,10 @@ export const api = {
 
   // Residents get published news plus their own posts; managers get every post.
   // `status` narrows the list (e.g. 'pending' = the moderation queue).
-  listAnnouncements: (opts: { status?: AnnouncementStatus } = {}): Promise<Announcement[]> =>
+  // Paged like listRequests: `offset += limit` until fewer than `limit` return.
+  listAnnouncements: (
+    opts: { status?: AnnouncementStatus; limit?: number; offset?: number } = {},
+  ): Promise<Announcement[]> =>
     call(z.array(AnnouncementSchema), 'GET', `/api/announcements${query(opts)}`),
 
   // A manager's post is published at once; a resident's waits for review.
@@ -233,6 +236,18 @@ export async function listAllRequests(mine: boolean): Promise<ServiceRequest[]> 
   const all: ServiceRequest[] = []
   for (let offset = 0; ; offset += PAGE_LIMIT) {
     const page = await api.listRequests({ mine, limit: PAGE_LIMIT, offset })
+    all.push(...page)
+    if (page.length < PAGE_LIMIT) return all
+  }
+}
+
+// Every news post the caller may see (all pages), newest first (ITP-51).
+export async function listAllAnnouncements(
+  opts: { status?: AnnouncementStatus } = {},
+): Promise<Announcement[]> {
+  const all: Announcement[] = []
+  for (let offset = 0; ; offset += PAGE_LIMIT) {
+    const page = await api.listAnnouncements({ ...opts, limit: PAGE_LIMIT, offset })
     all.push(...page)
     if (page.length < PAGE_LIMIT) return all
   }

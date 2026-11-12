@@ -209,3 +209,21 @@ def test_resident_submissions_are_rate_limited(client: TestClient, make_account)
     manager = make_account(BUILDING_B, None, role="manager")
     for _ in range(6):
         assert _post(client, manager.headers)["status"] == "published"
+
+
+def test_news_list_is_paged(client: TestClient, make_account) -> None:
+    manager = make_account(BUILDING_B, None, role="manager")
+    older = _post(client, manager.headers)
+    newer = _post(client, manager.headers)
+
+    def page(**params: str) -> httpx.Response:
+        return client.get("/api/announcements", headers=manager.headers, params=params)
+
+    # Newest first, one row per page, nothing lost between pages.
+    first = page(limit="1")
+    assert first.status_code == 200, first.text
+    assert [a["id"] for a in first.json()] == [newer["id"]]
+    second = page(limit="1", offset="1")
+    assert second.status_code == 200, second.text
+    assert [a["id"] for a in second.json()] == [older["id"]]
+    assert page(limit="101").status_code == 422

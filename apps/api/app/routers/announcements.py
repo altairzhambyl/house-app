@@ -68,18 +68,23 @@ async def list_announcements(
     supabase: SupabaseDep,
     resident: CurrentResident,
     status_filter: Annotated[AnnouncementStatus | None, Query(alias="status")] = None,
+    limit: Annotated[int, Query(ge=1, le=100)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
 ) -> list[AnnouncementOut]:
     """News of the caller's building, newest first.
 
     Residents get published news plus their own posts in any state; managers get
     every post of the building. `status=pending` narrows to the moderation queue
     (for a resident: their own posts awaiting review).
+
+    Paged: fetch the next page with `offset += limit` until fewer than `limit` return.
     """
     query = (
         supabase.table("announcements")
         .select(COLUMNS)
         .eq("building_id", str(resident.building_id))
         .order("created_at", desc=True)
+        .order("id", desc=True)
     )
     if resident.role is not Role.manager:
         query = query.or_(
@@ -87,7 +92,7 @@ async def list_announcements(
         )
     if status_filter is not None:
         query = query.eq("status", status_filter.value)
-    response = await query.execute()
+    response = await query.range(offset, offset + limit - 1).execute()
     return [_to_out(row) for row in response.data]
 
 

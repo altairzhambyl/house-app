@@ -33,7 +33,6 @@ export const m = defineMessages({
     rejectReasonPlaceholder: 'Напр. Это лучше обсудить в чате дома',
     confirmReject: 'Отклонить новость',
     cancel: 'Отмена',
-    alreadyReviewed: 'Эту новость уже проверил другой управляющий. Обновите страницу.',
   },
   kk: {
     title: 'Үй жаңалықтары',
@@ -67,7 +66,6 @@ export const m = defineMessages({
     rejectReasonPlaceholder: 'Мысалы, мұны үй чатында талқылаған дұрыс',
     confirmReject: 'Жаңалықты қабылдамау',
     cancel: 'Болдырмау',
-    alreadyReviewed: 'Бұл жаңалықты басқа басқарушы тексеріп қойған. Бетті жаңартыңыз.',
   },
   en: {
     title: 'Building news',
@@ -101,6 +99,5 @@ export const m = defineMessages({
     rejectReasonPlaceholder: 'e.g. Better discussed in the building chat',
     confirmReject: 'Reject post',
     cancel: 'Cancel',
-    alreadyReviewed: 'Another manager has already reviewed this post. Refresh the page.',
   },
 })

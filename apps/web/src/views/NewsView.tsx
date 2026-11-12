@@ -1,7 +1,7 @@
 import { useCallback, useState, type FormEvent, type ReactNode } from 'react'
 import { Badge, Card, ErrorNote, Loaded, SectionHeader, inputCls, labelCls } from '../components/ui'
 import { useLocale, useT } from '../i18n'
-import { api } from '../lib/api'
+import { ApiError, api, listAllAnnouncements } from '../lib/api'
 import { replaceNews, splitNews } from '../lib/news'
 import { m } from './NewsView.i18n'
 import { useApi } from '../lib/useApi'
@@ -15,7 +15,7 @@ const MAX_REASON = 500
 export function NewsView({ resident }: { resident: Resident }) {
   const t = useT(m)
   const isManager = resident.role === 'manager'
-  const { state, reload, setData } = useApi(useCallback(() => api.listAnnouncements(), []))
+  const { state, reload, setData } = useApi(useCallback(() => listAllAnnouncements(), []))
   const onReviewed = useCallback((a: Announcement) => setData(list => replaceNews(list, a)), [setData])
 
   return (
@@ -36,7 +36,7 @@ export function NewsView({ resident }: { resident: Resident }) {
                   <div className="space-y-3">
                     {review.map(n => (
                       <NewsCard key={n.id} n={n}>
-                        {isManager && n.status === 'pending' && <ReviewActions n={n} onReviewed={onReviewed} />}
+                        {isManager && n.status === 'pending' && <ReviewActions n={n} onReviewed={onReviewed} onStale={reload} />}
                       </NewsCard>
                     ))}
                   </div>
@@ -57,16 +57,22 @@ export function NewsView({ resident }: { resident: Resident }) {
   )
 }
 
-function NewsCard({ n, children }: { n: Announcement; children?: ReactNode }) {
+/** «УК» for a manager's post, «От жильца, кв. X» for a resident's (flat only, no name). */
+export function NewsAuthorBadge({ n }: { n: Pick<Announcement, 'is_official' | 'author_flat_number'> }) {
   const t = useT(m)
-  const { formatDateTime } = useLocale()
   const author = n.is_official
     ? t('official')
     : n.author_flat_number ? t('fromResident', { flat: n.author_flat_number }) : t('fromResidentNoFlat')
+  return <Badge label={author} tone={n.is_official ? 'green' : 'blue'} />
+}
+
+function NewsCard({ n, children }: { n: Announcement; children?: ReactNode }) {
+  const t = useT(m)
+  const { formatDateTime } = useLocale()
   return (
     <Card className="p-5">
       <div className="flex flex-wrap items-center gap-2 mb-2">
-        <Badge label={author} tone={n.is_official ? 'green' : 'blue'} />
+        <NewsAuthorBadge n={n} />
         {n.status === 'pending' && <Badge label={t('statusPending')} tone="amber" />}
         {n.status === 'rejected' && <Badge label={t('statusRejected')} tone="red" />}
         <span className="text-xs text-[#697050] font-mono">{formatDateTime(n.created_at)}</span>
@@ -83,7 +89,12 @@ function NewsCard({ n, children }: { n: Announcement; children?: ReactNode }) {
   )
 }
 
-function ReviewActions({ n, onReviewed }: { n: Announcement; onReviewed: (a: Announcement) => void }) {
+function ReviewActions({ n, onReviewed, onStale }: {
+  n: Announcement
+  onReviewed: (a: Announcement) => void
+  // Another manager already reviewed it: refetch so the queue matches the server.
+  onStale: () => void
+}) {
   const t = useT(m)
   const [rejecting, setRejecting] = useState(false)
   const [reason, setReason] = useState('')
@@ -96,6 +107,7 @@ function ReviewActions({ n, onReviewed }: { n: Announcement; onReviewed: (a: Ann
     try {
       onReviewed(await action())
     } catch (err) {
+      if (err instanceof ApiError && err.status === 409) { onStale(); return }
       setError(err)
       setBusy(false)
     }
@@ -139,7 +151,7 @@ function ReviewActions({ n, onReviewed }: { n: Announcement; onReviewed: (a: Ann
         </div>
       )}
       {error !== null && (
-        <div className="mt-2"><ErrorNote error={error} overrides={{ 409: t('alreadyReviewed') }} /></div>
+        <div className="mt-2"><ErrorNote error={error} /></div>
       )}
     </div>
   )
