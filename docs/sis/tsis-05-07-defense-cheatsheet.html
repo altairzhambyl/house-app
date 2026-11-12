@@ -46,10 +46,11 @@ Questions go to the PM. Pattern for every answer: <b>definition → "in our proj
 
 <div class="box"><h3>Our scope &amp; risks</h3>
 <b>Must (MVP):</b> login/auth, join building by flat code, emergency &amp; outage alerts, complaints/requests with status history, residential news/building channel, community voting, multilingual UI.<br>
-<b>Out of scope:</b> payment/bank integration (only Kaspi transfer + manager phone + receipt upload), native mobile app, analytics dashboard (low). Resident chat → next sprint.<br>
+<b>Payments:</b> Kaspi transfer to the management company (manager's phone) + receipt upload; no in-app payment processing.<br>
+<b>Out of scope:</b> payment/bank integration, native mobile app, analytics dashboard (low). Resident chat → next sprint.<br>
 <b>Risks:</b> AI-token shortage · frontend–backend integration (medium, manageable) · 2-person team / absence · scope creep · exam load.</div>
 
-<div class="box"><h3>Scope creep</h3>Uncontrolled scope growth. Case: <b>UK Child Support Agency</b> — £456M lost, 2,500 unmanaged change requests. <span class="ours">"If it's not in prod, it shouldn't be in the spec (TZ)" — removed payment mentions to avoid contradiction.</span></div>
+<div class="box"><h3>Scope creep</h3>Uncontrolled scope growth. Case: <b>UK Child Support Agency</b> — £456M lost, 2,500 unmanaged change requests. <span class="ours">"If it's not in prod, it shouldn't be in the spec (TZ)" — "pay online" removed from UI and docs; payments are a Kaspi transfer + receipt upload everywhere.</span></div>
 
 <div class="box"><h3>Force Field Analysis (Kurt Lewin)</h3>Central <b>MVP statement</b>; <b>driving forces (+)</b> vs <b>restraining forces (−)</b>, strength 1–5; ≥4 + ≥4; ≥3 actions (owner + week). Either <b>strengthen a driver or weaken a restraint</b>. If restraints dominate → <b>narrow objectives</b>, no heroic charter. Slides: "Power Field" = political feasibility (stakeholders, influence, stance).</div>
 
@@ -70,7 +71,7 @@ Questions go to the PM. Pattern for every answer: <b>definition → "in our proj
 <div class="box"><h3>MoSCoW</h3><b>M</b>ust · <b>S</b>hould · <b>C</b>ould · <b>W</b>on't (drop). Rule: 8–12 stories, ≥6 Must, ≤2 Should, stable IDs US-01…</div>
 
 <div class="box"><h3>Backlog grooming (refinement)</h3>PO-led, before Sprint Planning. Understand it? (no → rewrite) · In scope? (no → park) · Small enough? (no → split) → <b>ready backlog</b> / <b>Definition of Ready</b>. <b>Backlog pyramid:</b> top 10–15 fully detailed + estimated; middle T-shirt sizes (S/M/L/XL); tail = titles only. Student cadence 30–45 min weekly.
-<div class="ours">Decisions: one group chat per residential complex; payments out of MVP.</div></div>
+<div class="ours">Decisions: one group chat per residential complex; payments = Kaspi transfer to the management company + receipt upload, no in-app payment processing.</div></div>
 
 <div class="box"><h3>Profit forecast</h3><b>Net value = benefit − cost</b> over 12 months, <b>Base / Pessimistic / Optimistic</b>. ≥5 explicit assumptions (users, usage, time saved, cost…), ≥2 change between scenarios. Feeds the charter's <b>Business Case</b>. Be ready: which assumptions changed, why pessimistic is still positive / what you'd cut.</div>
 </div>
