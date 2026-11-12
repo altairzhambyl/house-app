@@ -36,6 +36,9 @@ LIMITS: dict[str, Limit] = {
     "message": Limit(30, 60),
     "announcement": Limit(20, 60 * 60),
     "flat_admin": Limit(60, 60 * 60),  # rotate codes, remove residents
+    "poll_create": Limit(10, 60 * 60),  # proposals and manager polls (ITP-40, ITP-55)
+    "poll_moderate": Limit(60, 60 * 60),  # approve, reject, close
+    "poll_vote": Limit(60, 60 * 60),
 }
 
 

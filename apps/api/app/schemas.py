@@ -5,7 +5,7 @@ from enum import Enum
 from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, StringConstraints, field_validator
+from pydantic import AwareDatetime, BaseModel, StringConstraints, field_validator
 
 
 # Trimmed, non-blank text - matches the `length(trim(...)) > 0` checks in the DB.
@@ -170,3 +170,61 @@ class MessageOut(BaseModel):
     role: Role
     body: str
     created_at: datetime
+
+
+# --- Polls (ITP-40, ITP-55) ---------------------------------------------------
+
+
+class PollStatus(str, Enum):
+    proposed = "proposed"
+    open = "open"
+    rejected = "rejected"
+    closed = "closed"
+
+
+class PollChoice(str, Enum):
+    for_ = "for"
+    against = "against"
+    abstain = "abstain"
+
+
+class PollCreate(BaseModel):
+    question: Annotated[str, _text(300)]
+    description: Annotated[str, _text(2000)] | None = None
+    # Must carry a UTC offset: a bare local time would be read differently per server.
+    ends_at: AwareDatetime
+
+    @field_validator("description", mode="before")
+    @classmethod
+    def blank_description_is_none(cls, value: object) -> object:
+        return None if isinstance(value, str) and not value.strip() else value
+
+
+class PollReject(BaseModel):
+    reason: Annotated[str, _text(500)]
+
+
+class PollVote(BaseModel):
+    choice: PollChoice
+
+
+class PollOut(BaseModel):
+    id: UUID
+    building_id: UUID
+    author_id: UUID
+    author_name: str
+    question: str
+    description: str | None
+    ends_at: datetime
+    # "closed" also when an open poll's ends_at has passed.
+    status: PollStatus
+    reject_reason: str | None
+    reviewed_at: datetime | None
+    created_at: datetime
+    votes_for: int
+    votes_against: int
+    votes_abstain: int
+    votes_total: int
+    # Active residents (role resident) of the building, i.e. who may vote.
+    eligible_voters: int
+    my_choice: PollChoice | None
