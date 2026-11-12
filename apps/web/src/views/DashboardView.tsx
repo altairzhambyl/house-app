@@ -2,6 +2,7 @@ import { useCallback } from 'react'
 import { RequestRow } from '../components/RequestRow'
 import { Card, Loaded, SectionHeader } from '../components/ui'
 import { api, listAllRequests } from '../lib/api'
+import { isOpenStatus } from '../lib/format'
 import { useApi } from '../lib/useApi'
 import type { Resident, View } from '../types'
 import { useLocale, useT } from '../i18n'
@@ -23,7 +24,7 @@ export function DashboardView({ resident, onNav, onOpenRequest }: {
   const requests = useApi(useCallback(() => listAllRequests(!isManager), [isManager]))
   const news = useApi(useCallback(() => api.listAnnouncements(), []))
 
-  const open = requests.state.status === 'ready' ? requests.state.data.filter(r => r.status !== 'done') : []
+  const open = requests.state.status === 'ready' ? requests.state.data.filter(r => isOpenStatus(r.status)) : []
   const countOf = (s: 'pending' | 'in_progress') =>
     requests.state.status === 'ready' ? open.filter(r => r.status === s).length : null
   const shown = (n: number | null) => n === null ? '…' : formatNumber(n)

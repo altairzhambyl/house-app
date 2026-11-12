@@ -1,9 +1,9 @@
 import { useCallback, useState } from 'react'
 import { Badge, Card, ErrorNote, Loaded, SectionHeader } from '../components/ui'
 import { api } from '../lib/api'
-import { STATUS_ORDER, STATUS_TONE, requestCode } from '../lib/format'
+import { STATUS_ORDER, STATUS_TONE, canWithdraw, requestCode, statusSteps, type ManagerStatus } from '../lib/format'
 import { useApi } from '../lib/useApi'
-import type { RequestStatus, Resident, ServiceRequest } from '../types'
+import type { Resident, ServiceRequest } from '../types'
 import { useLocale, useT } from '../i18n'
 import { m } from './RequestDetailView.i18n'
 
@@ -25,6 +25,7 @@ export function RequestDetailView({ id, resident, onBack, onChanged }: {
           <RequestDetail
             r={r}
             canChangeStatus={resident.role === 'manager'}
+            withdrawable={canWithdraw(r, resident.id)}
             onUpdated={next => {
               setData(prev => ({
                 ...next,
@@ -40,16 +41,18 @@ export function RequestDetailView({ id, resident, onBack, onChanged }: {
   )
 }
 
-function RequestDetail({ r, canChangeStatus, onUpdated }: {
+function RequestDetail({ r, canChangeStatus, withdrawable, onUpdated }: {
   r: ServiceRequest
   canChangeStatus: boolean
+  withdrawable: boolean
   onUpdated: (r: ServiceRequest) => void
 }) {
   const t = useT(m)
   const { formatDateTime, statusLabel, categoryLabel } = useLocale()
   const history = r.history ?? []
   const code = requestCode(r.number)
-  const reached = STATUS_ORDER.indexOf(r.status)
+  const steps = statusSteps(r.status)
+  const reached = steps.indexOf(r.status)
 
   return (
     <div>
@@ -66,11 +69,11 @@ function RequestDetail({ r, canChangeStatus, onUpdated }: {
 
             {/* Status timeline */}
             <div className="mt-4 pt-4 border-t border-[#F6F5DC] flex items-center gap-0 flex-wrap">
-              {STATUS_ORDER.map((s, i) => (
+              {steps.map((s, i) => (
                 <div key={s} className="flex items-center">
                   <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${i <= reached ? 'bg-[#2C4A1A] text-white' : 'bg-[#E2DFB8] text-[#697050]'}`}>{i + 1}</div>
                   <div className="text-[10px] font-mono ml-1 mr-3 text-[#697050]">{statusLabel(s)}</div>
-                  {i < STATUS_ORDER.length - 1 && <div className={`h-px w-8 mr-3 ${i < reached ? 'bg-[#2C4A1A]' : 'bg-[#E2DFB8]'}`} />}
+                  {i < steps.length - 1 && <div className={`h-px w-8 mr-3 ${i < reached ? 'bg-[#2C4A1A]' : 'bg-[#E2DFB8]'}`} />}
                 </div>
               ))}
             </div>
@@ -89,6 +92,7 @@ function RequestDetail({ r, canChangeStatus, onUpdated }: {
 
         <div className="space-y-4">
           {canChangeStatus && <StatusChanger r={r} onUpdated={onUpdated} />}
+          {withdrawable && <WithdrawPanel r={r} onUpdated={onUpdated} />}
           <Card className="p-4">
             <h2 className="font-semibold text-[#2C4A1A] text-sm mb-3">{t('history')}</h2>
             {history.length === 0
@@ -118,10 +122,10 @@ function RequestDetail({ r, canChangeStatus, onUpdated }: {
 function StatusChanger({ r, onUpdated }: { r: ServiceRequest; onUpdated: (r: ServiceRequest) => void }) {
   const t = useT(m)
   const { statusLabel } = useLocale()
-  const [busy, setBusy] = useState<RequestStatus | null>(null)
+  const [busy, setBusy] = useState<ManagerStatus | null>(null)
   const [error, setError] = useState<unknown>(null)
 
-  async function change(status: RequestStatus) {
+  async function change(status: ManagerStatus) {
     setBusy(status)
     setError(null)
     try {
@@ -136,7 +140,9 @@ function StatusChanger({ r, onUpdated }: { r: ServiceRequest; onUpdated: (r: Ser
   return (
     <Card className="p-4">
       <h2 className="font-semibold text-[#2C4A1A] text-sm mb-3">{t('changeStatus')}</h2>
-      <div className="flex flex-col gap-2">
+      {r.status === 'withdrawn'
+        ? <p className="text-xs text-[#697050]">{t('withdrawnFinal')}</p>
+        : <div className="flex flex-col gap-2">
         {STATUS_ORDER.map(s => (
           <button key={s}
             onClick={() => change(s)}
@@ -148,8 +154,59 @@ function StatusChanger({ r, onUpdated }: { r: ServiceRequest; onUpdated: (r: Ser
             }`}
           >{busy === s ? t('saving') : statusLabel(s)}</button>
         ))}
-      </div>
-      {error !== null && <div className="mt-2"><ErrorNote error={error} overrides={{ 404: t('requestGone'), 403: t('managerOnly') }} /></div>}
+      </div>}
+      {error !== null && <div className="mt-2"><ErrorNote error={error} overrides={{ 404: t('requestGone'), 403: t('managerOnly'), 409: t('withdrawnFinal') }} /></div>}
+    </Card>
+  )
+}
+
+// The author takes back a request that is still new (ITP-53). Two steps, both
+// inline: a window.confirm dialog would block the page and cannot be styled.
+function WithdrawPanel({ r, onUpdated }: { r: ServiceRequest; onUpdated: (r: ServiceRequest) => void }) {
+  const t = useT(m)
+  const [confirming, setConfirming] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<unknown>(null)
+
+  async function withdraw() {
+    setBusy(true)
+    setError(null)
+    try {
+      onUpdated(await api.withdrawRequest(r.id))
+    } catch (err) {
+      setError(err)
+      setConfirming(false)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Card className="p-4">
+      {confirming
+        ? (
+          <div role="group" aria-label={t('withdrawConfirmTitle')}>
+            <p className="text-sm text-[#1E2A0E] mb-1 font-medium">{t('withdrawConfirmTitle')}</p>
+            <p className="text-xs text-[#697050] mb-3">{t('withdrawConfirmBody')}</p>
+            <div className="flex gap-2">
+              <button onClick={withdraw} disabled={busy}
+                className="px-3 py-1.5 rounded text-sm font-medium border bg-red-700 text-white border-red-700 hover:bg-red-800 disabled:opacity-60 disabled:cursor-default"
+              >{busy ? t('withdrawing') : t('withdrawConfirm')}</button>
+              <button onClick={() => setConfirming(false)} disabled={busy}
+                className="px-3 py-1.5 rounded text-sm font-medium border bg-white text-[#2C4A1A] border-[#D6D3A8] hover:border-[#2C4A1A] disabled:opacity-60 disabled:cursor-default"
+              >{t('withdrawCancel')}</button>
+            </div>
+          </div>
+        )
+        : (
+          <>
+            <button onClick={() => { setConfirming(true); setError(null) }}
+              className="w-full px-3 py-1.5 rounded text-sm font-medium border bg-white text-red-700 border-[#D6D3A8] hover:border-red-700"
+            >{t('withdraw')}</button>
+            <p className="text-[11px] text-[#697050] mt-2">{t('withdrawHint')}</p>
+          </>
+        )}
+      {error !== null && <div className="mt-2"><ErrorNote error={error} overrides={{ 404: t('requestGone'), 409: t('withdrawTooLate') }} /></div>}
     </Card>
   )
 }

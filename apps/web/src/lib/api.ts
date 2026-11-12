@@ -201,6 +201,10 @@ export const api = {
   setRequestStatus: (id: string, status: RequestStatus): Promise<ServiceRequest> =>
     call(ServiceRequestSchema, 'PATCH', `/api/requests/${encodeURIComponent(id)}`, { json: { status } }),
 
+  // The author only, while still pending (ITP-53): 409 once it has moved on.
+  withdrawRequest: (id: string): Promise<ServiceRequest> =>
+    call(ServiceRequestSchema, 'POST', `/api/requests/${encodeURIComponent(id)}/withdraw`),
+
   listAnnouncements: (): Promise<Announcement[]> =>
     call(z.array(AnnouncementSchema), 'GET', '/api/announcements'),
 
