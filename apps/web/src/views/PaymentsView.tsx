@@ -83,9 +83,14 @@ export function PaymentsView({ resident }: { resident: Resident }) {
 
 // No in-app payment: the resident transfers by Kaspi to the manager's phone and
 // attaches the receipt (ITP-42). Nothing is uploaded yet, and the message says so.
-const RECEIPT_TYPES = 'image/*,application/pdf'
+const RECEIPT_TYPES = 'image/*,.heic,.heif,application/pdf'
+
+// Some browsers report phone photos (HEIC) with an empty MIME type, so fall
+// back to the extension when the type is missing.
+const RECEIPT_EXTENSIONS = /\.(jpe?g|png|gif|webp|heic|heif|pdf)$/i
 
 function isReceiptType(file: File): boolean {
+  if (file.type === '') return RECEIPT_EXTENSIONS.test(file.name)
   return file.type.startsWith('image/') || file.type === 'application/pdf'
 }
 
