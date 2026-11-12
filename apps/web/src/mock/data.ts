@@ -218,12 +218,19 @@ export const MOCK_PAYMENTS: MockPayment[] = [
 ]
 
 export const MOCK_PAYMENT_SUMMARY = {
-  flat: '14B',
   dueAmount: 19000,
   dueMonth: '2026-10',
   paidThisYear: 214500,
   paidMonths: 9,
   debt: 0,
+}
+
+// Payments are a Kaspi transfer to the manager's phone plus a receipt upload;
+// the app processes no payments (team decision, 07.10, ITP-42).
+// Placeholder number, not a real account.
+export const MOCK_KASPI = {
+  phone: '+7 700 000 00 00',
+  recipient: { ru: 'Управляющая компания (демо)', kk: 'Басқарушы компания (демо)', en: 'Management company (demo)' } satisfies Localized,
 }
 
 // ---------------------------------------------------------------------------

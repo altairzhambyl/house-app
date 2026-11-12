@@ -166,7 +166,7 @@ function Shell({ resident }: { resident: Resident }) {
       case 'alerts': return <AlertsView />
       case 'complaints': return <ComplaintsView />
       case 'voting': return <VotingView />
-      case 'payments': return <PaymentsView />
+      case 'payments': return <PaymentsView resident={resident} />
       case 'owner': return <OwnerView />
     }
   }
