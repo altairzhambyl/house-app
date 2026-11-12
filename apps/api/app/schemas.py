@@ -149,6 +149,24 @@ class AnnouncementCreate(BaseModel):
     body: Annotated[str, _text(5000)]
 
 
+class AnnouncementStatus(str, Enum):
+    """Mirrors the check on public.announcements.status (ITP-51)."""
+
+    pending = "pending"  # a resident's post, waiting for a manager
+    published = "published"
+    rejected = "rejected"
+
+
+class AnnouncementReject(BaseModel):
+    # Optional; shown to the author. Blank means "no reason given".
+    reason: Annotated[str, _text(500)] | None = None
+
+    @field_validator("reason", mode="before")
+    @classmethod
+    def blank_reason_is_none(cls, value: object) -> object:
+        return None if isinstance(value, str) and not value.strip() else value
+
+
 class AnnouncementOut(BaseModel):
     id: UUID
     building_id: UUID
@@ -156,6 +174,14 @@ class AnnouncementOut(BaseModel):
     title: str
     body: str
     created_at: datetime
+    status: AnnouncementStatus
+    # Only on rejected posts; only the author and managers ever see those.
+    reject_reason: str | None
+    reviewed_at: datetime | None
+    # True for posts by the management company (a manager), false for residents.
+    is_official: bool
+    # Residents' posts are labelled by flat only, never by name.
+    author_flat_number: str | None
 
 
 class MessageCreate(BaseModel):
