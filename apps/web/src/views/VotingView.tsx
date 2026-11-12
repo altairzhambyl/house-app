@@ -43,6 +43,13 @@ export function VotingView({ resident }: { resident: Resident }) {
   const upsert = useCallback((poll: Poll) => {
     setData(list => (list.some(p => p.id === poll.id) ? list.map(p => (p.id === poll.id ? poll : p)) : [poll, ...list]))
   }, [setData])
+  // The form stays usable while the list is loading or failed, when setData is a
+  // no-op; fetch the list again then, so a new poll never looks lost.
+  const listReady = state.status === 'ready'
+  const created = useCallback((poll: Poll) => {
+    if (listReady) upsert(poll)
+    else reload()
+  }, [listReady, upsert, reload])
 
   return (
     <div>
@@ -50,7 +57,7 @@ export function VotingView({ resident }: { resident: Resident }) {
       <p className="text-xs text-[#697050] bg-[#F6F5DC] border border-[#D6D3A8] rounded px-3 py-2 mb-5 max-w-2xl">
         {t('advisory')}
       </p>
-      <ProposePoll isManager={isManager} onCreated={upsert} />
+      <ProposePoll isManager={isManager} onCreated={created} />
       <Loaded state={state} onRetry={reload}>
         {polls => <PollSections polls={polls} resident={resident} onChanged={upsert} />}
       </Loaded>
@@ -106,6 +113,14 @@ function PollCard({ poll, resident, onChanged }: {
   const [error, setError] = useState<unknown>(null)
   const isManager = resident.role === 'manager'
   const isReview = poll.status === 'proposed' || poll.status === 'rejected'
+  // A proposal nobody approved before its end date can only be rejected.
+  const ended = new Date(poll.ends_at) <= new Date()
+
+  function conflictMessage(): string {
+    if (poll.status === 'open' && !isManager) return t('voteRejected')
+    if (poll.status === 'proposed' && isManager) return t('moderateConflict')
+    return t('notOpen')
+  }
 
   async function run(action: () => Promise<Poll>) {
     setBusy(true)
@@ -135,10 +150,13 @@ function PollCard({ poll, resident, onChanged }: {
         <p className="text-xs text-red-700 mt-3 break-words">{t('rejectReason', { reason: poll.reject_reason })}</p>
       )}
       {poll.status === 'proposed' && !isManager && (
-        <p className="text-xs text-[#697050] mt-3">{t('awaitingReview')}</p>
+        <p className="text-xs text-[#697050] mt-3">{ended ? t('proposalExpired') : t('awaitingReview')}</p>
       )}
       {poll.status === 'proposed' && isManager && (
-        <Moderation poll={poll} busy={busy} run={run} />
+        <>
+          {ended && <p className="text-xs text-[#697050] mt-3">{t('endedRejectOnly')}</p>}
+          <Moderation poll={poll} busy={busy} run={run} canApprove={!ended} />
+        </>
       )}
 
       {!isReview && <Tally poll={poll} />}
@@ -171,7 +189,7 @@ function PollCard({ poll, resident, onChanged }: {
       )}
       {error !== null && (
         <div className="mt-3">
-          <ErrorNote error={error} overrides={{ 409: poll.status === 'open' && !isManager ? t('voteRejected') : t('notOpen') }} />
+          <ErrorNote error={error} overrides={{ 409: conflictMessage() }} />
         </div>
       )}
     </Card>
@@ -209,10 +227,11 @@ function Turnout({ poll }: { poll: Poll }) {
   return <>{t('turnout', { voted: formatNumber(poll.votes_total), total: formatNumber(poll.eligible_voters) })}</>
 }
 
-function Moderation({ poll, busy, run }: {
+function Moderation({ poll, busy, run, canApprove }: {
   poll: Poll
   busy: boolean
   run: (action: () => Promise<Poll>) => Promise<void>
+  canApprove: boolean
 }) {
   const t = useT(m)
   const [rejecting, setRejecting] = useState(false)
@@ -247,8 +266,10 @@ function Moderation({ poll, busy, run }: {
   }
   return (
     <div className="flex gap-2 mt-4">
-      <button type="button" disabled={busy} className={primaryBtn}
-        onClick={() => void run(() => api.approvePoll(poll.id))}>{t('approve')}</button>
+      {canApprove && (
+        <button type="button" disabled={busy} className={primaryBtn}
+          onClick={() => void run(() => api.approvePoll(poll.id))}>{t('approve')}</button>
+      )}
       <button type="button" disabled={busy} className={secondaryBtn} onClick={() => setRejecting(true)}>{t('reject')}</button>
     </div>
   )
