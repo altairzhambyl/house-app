@@ -16,6 +16,7 @@ import {
   ServiceRequestSchema,
   type Announcement,
   type AnnouncementCreate,
+  type AnnouncementStatus,
   type Flat,
   type FlatResident,
   type Me,
@@ -201,11 +202,22 @@ export const api = {
   setRequestStatus: (id: string, status: RequestStatus): Promise<ServiceRequest> =>
     call(ServiceRequestSchema, 'PATCH', `/api/requests/${encodeURIComponent(id)}`, { json: { status } }),
 
-  listAnnouncements: (): Promise<Announcement[]> =>
-    call(z.array(AnnouncementSchema), 'GET', '/api/announcements'),
+  // Residents get published news plus their own posts; managers get every post.
+  // `status` narrows the list (e.g. 'pending' = the moderation queue).
+  listAnnouncements: (opts: { status?: AnnouncementStatus } = {}): Promise<Announcement[]> =>
+    call(z.array(AnnouncementSchema), 'GET', `/api/announcements${query(opts)}`),
 
+  // A manager's post is published at once; a resident's waits for review.
   createAnnouncement: (body: AnnouncementCreate): Promise<Announcement> =>
     call(AnnouncementSchema, 'POST', '/api/announcements', { json: body }),
+
+  approveAnnouncement: (id: string): Promise<Announcement> =>
+    call(AnnouncementSchema, 'POST', `/api/announcements/${encodeURIComponent(id)}/approve`),
+
+  rejectAnnouncement: (id: string, reason: string | null): Promise<Announcement> =>
+    call(AnnouncementSchema, 'POST', `/api/announcements/${encodeURIComponent(id)}/reject`, {
+      json: { reason },
+    }),
 
   // Newest first. `before` pages backwards through older messages.
   listMessages: (opts: { limit: number; before?: string }): Promise<Message[]> =>

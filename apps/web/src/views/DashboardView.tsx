@@ -21,7 +21,8 @@ export function DashboardView({ resident, onNav, onOpenRequest }: {
   const isManager = resident.role === 'manager'
   // Residents see their own requests; the manager sees the whole building's.
   const requests = useApi(useCallback(() => listAllRequests(!isManager), [isManager]))
-  const news = useApi(useCallback(() => api.listAnnouncements(), []))
+  // Published only: posts awaiting review are not building news yet (ITP-51).
+  const news = useApi(useCallback(() => api.listAnnouncements({ status: 'published' }), []))
 
   const open = requests.state.status === 'ready' ? requests.state.data.filter(r => r.status !== 'done') : []
   const countOf = (s: 'pending' | 'in_progress') =>
