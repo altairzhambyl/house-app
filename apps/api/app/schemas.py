@@ -25,6 +25,8 @@ class RequestStatus(str, Enum):
     pending = "pending"
     in_progress = "in_progress"
     done = "done"
+    # Final; set only by the author through POST /api/requests/{id}/withdraw (ITP-53).
+    withdrawn = "withdrawn"
 
 
 class RequestCategory(str, Enum):
@@ -119,6 +121,14 @@ class RequestDetailOut(RequestOut):
 
 class StatusUpdate(BaseModel):
     status: RequestStatus
+
+    @field_validator("status")
+    @classmethod
+    def not_withdrawn(cls, value: RequestStatus) -> RequestStatus:
+        # Withdrawing is the author's action, not a manager's status change.
+        if value is RequestStatus.withdrawn:
+            raise ValueError("only the author can withdraw a request")
+        return value
 
 
 class PhotoType(str, Enum):
