@@ -218,21 +218,28 @@ async def _moderate(
     from_status: PollStatus,
     changes: dict[str, Any],
     conflict: str,
+    before_end_only: bool,
 ) -> PollOut:
-    """Move a poll out of `from_status` atomically; 404 / 409 when that is not possible."""
+    """Move a poll out of `from_status` atomically; 404 / 409 when that is not possible.
+
+    `before_end_only` adds "ends_at is still ahead" to the match: approving or
+    closing a poll that has already ended means nothing. Rejecting does not need
+    it, so a proposal nobody reviewed in time can still leave the queue.
+    """
     now = _now()
-    updated = (
-        await supabase.table("polls")
+    query = (
+        supabase.table("polls")
         .update({**changes, "reviewed_by": str(manager.id), "reviewed_at": _iso(now)})
         .eq("id", str(poll_id))
         .eq("building_id", str(manager.building_id))
         .eq("status", from_status.value)
-        .gt("ends_at", _iso(now))
-        .execute()
     )
+    if before_end_only:
+        query = query.gt("ends_at", _iso(now))
+    updated = await query.execute()
     if not updated.data:
         # Nothing matched: missing / other building (404), or not in from_status
-        # or already past its end date (409).
+        # or (when required) already past its end date (409).
         await _get_in_building(supabase, poll_id, manager)
         raise HTTPException(status.HTTP_409_CONFLICT, conflict)
     row = await _get_in_building(supabase, poll_id, manager)
@@ -248,6 +255,7 @@ async def approve_poll(poll_id: UUID, supabase: SupabaseDep, manager: CurrentMan
         from_status=PollStatus.proposed,
         changes={"status": PollStatus.open.value},
         conflict="Only a proposal that has not ended yet can be approved",
+        before_end_only=True,
     )
 
 
@@ -261,7 +269,8 @@ async def reject_poll(
         manager,
         from_status=PollStatus.proposed,
         changes={"status": PollStatus.rejected.value, "reject_reason": body.reason},
-        conflict="Only a proposal that has not ended yet can be rejected",
+        conflict="Only a proposal can be rejected",
+        before_end_only=False,
     )
 
 
@@ -275,6 +284,7 @@ async def close_poll(poll_id: UUID, supabase: SupabaseDep, manager: CurrentManag
         from_status=PollStatus.open,
         changes={"status": PollStatus.closed.value},
         conflict="Only an open poll can be closed",
+        before_end_only=True,
     )
 
 
