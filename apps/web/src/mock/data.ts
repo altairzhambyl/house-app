@@ -7,8 +7,6 @@
 // are numbers for `formatMoney`.
 import type { Localized } from '../i18n'
 
-export type VoteChoice = 'yes' | 'no' | 'abstain'
-
 // ---------------------------------------------------------------------------
 // Outages
 
@@ -139,52 +137,6 @@ export const MOCK_COMPLAINTS: MockComplaint[] = [
   {
     id: 3, fromFlat: '3B', aboutFlat: null, status: 'closed', date: '2026-09-12',
     subject: { ru: 'Собака без поводка в лифте', kk: 'Лифтте қарғыбаусыз ит', en: 'Dog off its lead in the lift' },
-  },
-]
-
-// ---------------------------------------------------------------------------
-// Voting
-
-export type VoteStatus = 'open' | 'closed'
-
-export interface MockVote {
-  id: number
-  title: Localized
-  /** ISO date */
-  deadline: string
-  status: VoteStatus
-  yes: number
-  no: number
-  abstain: number
-  total: number
-  voted: boolean
-  myVote?: VoteChoice
-}
-
-export const MOCK_VOTES: MockVote[] = [
-  {
-    id: 1, deadline: '2026-10-10', status: 'open', yes: 42, no: 11, abstain: 5, total: 80, voted: false,
-    title: {
-      ru: 'Установить камеры видеонаблюдения во всех подъездах',
-      kk: 'Барлық кіреберіске бейнебақылау камераларын орнату',
-      en: 'Install CCTV cameras in all entrances',
-    },
-  },
-  {
-    id: 2, deadline: '2026-10-15', status: 'open', yes: 31, no: 22, abstain: 8, total: 80, voted: true, myVote: 'yes',
-    title: {
-      ru: 'Увеличить уборку общих зон до 3 раз в неделю',
-      kk: 'Ортақ аумақтарды аптасына 3 рет тазалау',
-      en: 'Increase cleaning of common areas to 3 times a week',
-    },
-  },
-  {
-    id: 3, deadline: '2026-09-20', status: 'closed', yes: 55, no: 18, abstain: 7, total: 80, voted: true, myVote: 'yes',
-    title: {
-      ru: 'Покраска фасада — утвердить статью бюджета 2026 года',
-      kk: 'Үй қасбетін бояу — 2026 жылғы бюджет бабын бекіту',
-      en: 'Repaint the facade — approve the 2026 budget item',
-    },
   },
 ]
 
