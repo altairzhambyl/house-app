@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import { Badge, Card, ErrorNote, Loaded, SectionHeader } from '../components/ui'
-import { api } from '../lib/api'
+import { ApiError, api } from '../lib/api'
 import { STATUS_ORDER, STATUS_TONE, canWithdraw, requestCode, statusSteps, type ManagerStatus } from '../lib/format'
 import { useApi } from '../lib/useApi'
 import type { Resident, ServiceRequest } from '../types'
@@ -49,6 +49,9 @@ function RequestDetail({ r, canChangeStatus, withdrawable, onUpdated }: {
 }) {
   const t = useT(m)
   const { formatDateTime, statusLabel, categoryLabel } = useLocale()
+  // Set after a withdraw attempt hit 409. The panel unmounts once the reloaded
+  // request is no longer pending, so the message has to live here.
+  const [withdrawNotice, setWithdrawNotice] = useState<'withdrawAlready' | 'withdrawTooLate' | null>(null)
   const history = r.history ?? []
   const code = requestCode(r.number)
   const steps = statusSteps(r.status)
@@ -92,7 +95,13 @@ function RequestDetail({ r, canChangeStatus, withdrawable, onUpdated }: {
 
         <div className="space-y-4">
           {canChangeStatus && <StatusChanger r={r} onUpdated={onUpdated} />}
-          {withdrawable && <WithdrawPanel r={r} onUpdated={onUpdated} />}
+          {withdrawable && (
+            <WithdrawPanel r={r} onUpdated={onUpdated}
+              onConflict={fresh => setWithdrawNotice(fresh.status === 'withdrawn' ? 'withdrawAlready' : 'withdrawTooLate')} />
+          )}
+          {withdrawNotice !== null && !withdrawable && (
+            <Card className="p-4"><p className="text-xs text-[#697050]" role="status">{t(withdrawNotice)}</p></Card>
+          )}
           <Card className="p-4">
             <h2 className="font-semibold text-[#2C4A1A] text-sm mb-3">{t('history')}</h2>
             {history.length === 0
@@ -131,7 +140,11 @@ function StatusChanger({ r, onUpdated }: { r: ServiceRequest; onUpdated: (r: Ser
     try {
       onUpdated(await api.setRequestStatus(r.id, status))
     } catch (err) {
-      setError(err)
+      // 409: the resident withdrew it meanwhile. Reload so the badge, stepper
+      // and this card (which then shows withdrawnFinal, no buttons) match the server.
+      const fresh = isConflict(err) ? await refetch(r.id) : null
+      if (fresh) onUpdated(fresh)
+      else setError(err)
     } finally {
       setBusy(null)
     }
@@ -160,9 +173,26 @@ function StatusChanger({ r, onUpdated }: { r: ServiceRequest; onUpdated: (r: Ser
   )
 }
 
+function isConflict(err: unknown): boolean {
+  return err instanceof ApiError && err.status === 409
+}
+
+// Best-effort reload after a 409; null means the caller shows the original error.
+async function refetch(id: string): Promise<ServiceRequest | null> {
+  try {
+    return await api.getRequest(id)
+  } catch {
+    return null
+  }
+}
+
 // The author takes back a request that is still new (ITP-53). Two steps, both
 // inline: a window.confirm dialog would block the page and cannot be styled.
-function WithdrawPanel({ r, onUpdated }: { r: ServiceRequest; onUpdated: (r: ServiceRequest) => void }) {
+function WithdrawPanel({ r, onUpdated, onConflict }: {
+  r: ServiceRequest
+  onUpdated: (r: ServiceRequest) => void
+  onConflict: (fresh: ServiceRequest) => void
+}) {
   const t = useT(m)
   const [confirming, setConfirming] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -174,6 +204,15 @@ function WithdrawPanel({ r, onUpdated }: { r: ServiceRequest; onUpdated: (r: Ser
     try {
       onUpdated(await api.withdrawRequest(r.id))
     } catch (err) {
+      // 409: no longer pending (taken into work, done, or withdrawn in another
+      // tab). Reload so the view matches the server; the panel then unmounts
+      // and RequestDetail shows a message chosen from the fresh status.
+      const fresh = isConflict(err) ? await refetch(r.id) : null
+      if (fresh && fresh.status !== 'pending') {
+        onConflict(fresh)
+        onUpdated(fresh)
+        return
+      }
       setError(err)
       setConfirming(false)
     } finally {

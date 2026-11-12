@@ -25,7 +25,8 @@ export const m = defineMessages({
     withdrawConfirm: 'Да, отозвать',
     withdrawCancel: 'Отмена',
     withdrawing: 'Отзываем…',
-    withdrawTooLate: 'Заявку уже взяли в работу — отозвать её нельзя.',
+    withdrawTooLate: 'Заявка уже не «Новая» — отозвать её нельзя.',
+    withdrawAlready: 'Заявка уже отозвана.',
   },
   kk: {
     back: '← Өтінімдер тізіміне',
@@ -51,7 +52,8 @@ export const m = defineMessages({
     withdrawConfirm: 'Иә, кері қайтару',
     withdrawCancel: 'Болдырмау',
     withdrawing: 'Кері қайтарылуда…',
-    withdrawTooLate: 'Өтінім жұмысқа алынды — оны кері қайтару мүмкін емес.',
+    withdrawTooLate: 'Өтінім енді «Жаңа» емес — оны кері қайтару мүмкін емес.',
+    withdrawAlready: 'Өтінім кері қайтарылып қойған.',
   },
   en: {
     back: '← Back to requests',
@@ -77,6 +79,7 @@ export const m = defineMessages({
     withdrawConfirm: 'Yes, withdraw',
     withdrawCancel: 'Cancel',
     withdrawing: 'Withdrawing…',
-    withdrawTooLate: 'The request is already being handled — it can no longer be withdrawn.',
+    withdrawTooLate: 'This request is no longer New, so it can no longer be withdrawn.',
+    withdrawAlready: 'This request has already been withdrawn.',
   },
 })
