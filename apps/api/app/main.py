@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import get_settings
-from app.routers import announcements, flats, messages, requests, residents
+from app.routers import announcements, flats, messages, polls, requests, residents
 from app.supabase_client import close_supabase, get_client, init_supabase
 
 
@@ -111,3 +111,4 @@ app.include_router(flats.router)
 app.include_router(requests.router)
 app.include_router(messages.router)
 app.include_router(announcements.router)
+app.include_router(polls.router)

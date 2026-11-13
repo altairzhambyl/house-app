@@ -84,6 +84,7 @@ const NAV_ITEMS: NavItem[] = [
   { view: 'report', icon: '＋', needsFlat: true },
   { view: 'requests', icon: '📋' },
   { view: 'flats', icon: '🔑', managerOnly: true },
+  { view: 'voting', icon: '✓' },
 ]
 
 // nav — still on mock data (see DemoBadge)
@@ -91,7 +92,6 @@ const DEMO_ITEMS: NavItem[] = [
   { view: 'outages', icon: '⚡' },
   { view: 'alerts', icon: '🚨' },
   { view: 'complaints', icon: '⚑' },
-  { view: 'voting', icon: '✓' },
   { view: 'payments', icon: '₸' },
   { view: 'owner', icon: '🏠' },
 ]

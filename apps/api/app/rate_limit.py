@@ -40,6 +40,9 @@ LIMITS: dict[str, Limit] = {
     # ITP-51: on top of "announcement" - each one lands in the managers' queue.
     "resident_news": Limit(5, 60 * 60),
     "news_moderation": Limit(60, 60 * 60),  # approve / reject resident news
+    "poll_create": Limit(10, 60 * 60),  # proposals and manager polls (ITP-40, ITP-55)
+    "poll_moderate": Limit(60, 60 * 60),  # approve, reject, close
+    "poll_vote": Limit(60, 60 * 60),
 }
 
 

@@ -144,3 +144,40 @@ export type View =
   | 'voting'
   | 'payments'
   | 'owner'
+
+// Polls (ITP-40, ITP-55). Mirrors schemas.PollOut / PollCreate.
+export const PollStatusSchema = z.enum(['proposed', 'open', 'rejected', 'closed'])
+export type PollStatus = z.infer<typeof PollStatusSchema>
+
+export const PollChoiceSchema = z.enum(['for', 'against', 'abstain'])
+export type PollChoice = z.infer<typeof PollChoiceSchema>
+
+export const PollSchema = z.object({
+  id: z.string(),
+  building_id: z.string(),
+  author_id: z.string(),
+  author_name: z.string(),
+  question: z.string(),
+  description: z.string().nullable(),
+  ends_at: z.string(),
+  // 'closed' also when an open poll's end date has passed.
+  status: PollStatusSchema,
+  reject_reason: z.string().nullable(),
+  reviewed_at: z.string().nullable(),
+  created_at: z.string(),
+  votes_for: z.number().int(),
+  votes_against: z.number().int(),
+  votes_abstain: z.number().int(),
+  votes_total: z.number().int(),
+  // Active residents of the building (who may vote).
+  eligible_voters: z.number().int(),
+  my_choice: PollChoiceSchema.nullable(),
+})
+export type Poll = z.infer<typeof PollSchema>
+
+export interface PollCreate {
+  question: string
+  description: string | null
+  /** ISO 8601 with offset */
+  ends_at: string
+}
