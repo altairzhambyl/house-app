@@ -233,10 +233,15 @@ def test_closed_and_expired_polls_take_no_votes(client: TestClient, stack, make_
     assert late.status_code == 409
     # ...but it can still be rejected, so it does not sit in the queue forever.
     reject_url = f"/api/polls/{proposal['id']}/reject"
-    assert client.post(reject_url, headers=resident.headers, json={"reason": "x"}).status_code == 403
+    assert (
+        client.post(reject_url, headers=resident.headers, json={"reason": "x"}).status_code == 403
+    )
     rejected = client.post(reject_url, headers=manager.headers, json={"reason": "Too late."})
     assert rejected.status_code == 200, rejected.text
-    assert (rejected.json()["status"], rejected.json()["reject_reason"]) == ("rejected", "Too late.")
+    assert (rejected.json()["status"], rejected.json()["reject_reason"]) == (
+        "rejected",
+        "Too late.",
+    )
     assert _listed(client, resident.headers)[proposal["id"]]["status"] == "rejected"
 
 
