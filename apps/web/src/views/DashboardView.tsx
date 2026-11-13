@@ -1,11 +1,13 @@
 import { useCallback } from 'react'
 import { RequestRow } from '../components/RequestRow'
 import { Card, Loaded, SectionHeader } from '../components/ui'
-import { api, listAllRequests } from '../lib/api'
+import { PAGE_LIMIT, api, listAllRequests } from '../lib/api'
+import { isOpenStatus } from '../lib/format'
 import { useApi } from '../lib/useApi'
 import type { Resident, View } from '../types'
 import { useLocale, useT } from '../i18n'
 import { m } from './DashboardView.i18n'
+import { NewsAuthorBadge } from './NewsView'
 
 const LATEST_NEWS = 3
 const OPEN_SHOWN = 5
@@ -21,12 +23,17 @@ export function DashboardView({ resident, onNav, onOpenRequest }: {
   const isManager = resident.role === 'manager'
   // Residents see their own requests; the manager sees the whole building's.
   const requests = useApi(useCallback(() => listAllRequests(!isManager), [isManager]))
-  const news = useApi(useCallback(() => api.listAnnouncements(), []))
+  // Published only: posts awaiting review are not building news yet (ITP-51).
+  // One page: the card shows 3 and the counter caps at "100+".
+  const news = useApi(useCallback(() => api.listAnnouncements({ status: 'published', limit: PAGE_LIMIT }), []))
 
-  const open = requests.state.status === 'ready' ? requests.state.data.filter(r => r.status !== 'done') : []
+  const open = requests.state.status === 'ready' ? requests.state.data.filter(r => isOpenStatus(r.status)) : []
   const countOf = (s: 'pending' | 'in_progress') =>
     requests.state.status === 'ready' ? open.filter(r => r.status === s).length : null
   const shown = (n: number | null) => n === null ? '…' : formatNumber(n)
+  const newsCount = news.state.status === 'ready'
+    ? news.state.data.length >= PAGE_LIMIT ? `${formatNumber(PAGE_LIMIT)}+` : formatNumber(news.state.data.length)
+    : '…'
   const inProgress = countOf('in_progress')
 
   const sub = [resident.building_name, resident.flat_number ? t('flat', { flat: resident.flat_number }) : t('manager')]
@@ -41,7 +48,7 @@ export function DashboardView({ resident, onNav, onOpenRequest }: {
         {[
           { id: 'pending', label: isManager ? t('newRequests') : t('myNewRequests'), value: shown(countOf('pending')), sub: t('awaitingReply'), action: 'requests' as View },
           { id: 'in_progress', label: t('inProgress'), value: shown(inProgress), sub: t('requestsUnit', inProgress === null ? undefined : { n: inProgress }), action: 'requests' as View },
-          { id: 'news', label: t('news'), value: shown(news.state.status === 'ready' ? news.state.data.length : null), sub: t('fromManager'), action: 'news' as View },
+          { id: 'news', label: t('news'), value: newsCount, sub: t('fromManager'), action: 'news' as View },
           { id: 'channel', label: t('chat'), value: '💬', sub: t('chatSub'), action: 'channel' as View },
         ].map(s => (
           <button key={s.id} onClick={() => onNav(s.action)}
@@ -65,6 +72,7 @@ export function DashboardView({ resident, onNav, onOpenRequest }: {
               <Card>
                 {items.slice(0, LATEST_NEWS).map((n, i, arr) => (
                   <div key={n.id} className={`px-4 py-3 ${i < arr.length - 1 ? 'border-b border-[#F6F5DC]' : ''}`}>
+                    <div className="mb-1"><NewsAuthorBadge n={n} /></div>
                     <div className="font-medium text-sm text-[#1E2A0E] leading-snug break-words">{n.title}</div>
                     <div className="text-xs text-[#697050] mt-0.5 line-clamp-2 break-words">{n.body}</div>
                     <div className="text-[11px] text-[#697050] font-mono mt-1">{formatDate(n.created_at)}</div>

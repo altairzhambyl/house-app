@@ -16,6 +16,7 @@ import {
   ServiceRequestSchema,
   type Announcement,
   type AnnouncementCreate,
+  type AnnouncementStatus,
   type Flat,
   type FlatResident,
   type Me,
@@ -25,6 +26,7 @@ import {
   type Resident,
   type ServiceRequest,
 } from '../types'
+import { PollSchema, type Poll, type PollChoice, type PollCreate } from '../types'
 
 // Ticket from POST /api/requests/{id}/photo-upload (schemas.PhotoUploadOut).
 const PhotoUploadSchema = z.object({ bucket: z.string(), path: z.string(), token: z.string() })
@@ -201,11 +203,29 @@ export const api = {
   setRequestStatus: (id: string, status: RequestStatus): Promise<ServiceRequest> =>
     call(ServiceRequestSchema, 'PATCH', `/api/requests/${encodeURIComponent(id)}`, { json: { status } }),
 
-  listAnnouncements: (): Promise<Announcement[]> =>
-    call(z.array(AnnouncementSchema), 'GET', '/api/announcements'),
+  // The author only, while still pending (ITP-53): 409 once it has moved on.
+  withdrawRequest: (id: string): Promise<ServiceRequest> =>
+    call(ServiceRequestSchema, 'POST', `/api/requests/${encodeURIComponent(id)}/withdraw`),
 
+  // Residents get published news plus their own posts; managers get every post.
+  // `status` narrows the list (e.g. 'pending' = the moderation queue).
+  // Paged like listRequests: `offset += limit` until fewer than `limit` return.
+  listAnnouncements: (
+    opts: { status?: AnnouncementStatus; limit?: number; offset?: number } = {},
+  ): Promise<Announcement[]> =>
+    call(z.array(AnnouncementSchema), 'GET', `/api/announcements${query(opts)}`),
+
+  // A manager's post is published at once; a resident's waits for review.
   createAnnouncement: (body: AnnouncementCreate): Promise<Announcement> =>
     call(AnnouncementSchema, 'POST', '/api/announcements', { json: body }),
+
+  approveAnnouncement: (id: string): Promise<Announcement> =>
+    call(AnnouncementSchema, 'POST', `/api/announcements/${encodeURIComponent(id)}/approve`),
+
+  rejectAnnouncement: (id: string, reason: string | null): Promise<Announcement> =>
+    call(AnnouncementSchema, 'POST', `/api/announcements/${encodeURIComponent(id)}/reject`, {
+      json: { reason },
+    }),
 
   // Newest first. `before` pages backwards through older messages.
   listMessages: (opts: { limit: number; before?: string }): Promise<Message[]> =>
@@ -213,6 +233,35 @@ export const api = {
 
   postMessage: (body: string): Promise<Message> =>
     call(MessageSchema, 'POST', '/api/messages', { json: { body } }),
+
+  // Polls (ITP-40, ITP-55). Newest first, paged like requests.
+  listPolls: (opts: { limit: number; offset: number }): Promise<Poll[]> =>
+    call(z.array(PollSchema), 'GET', `/api/polls${query(opts)}`),
+
+  createPoll: (body: PollCreate): Promise<Poll> =>
+    call(PollSchema, 'POST', '/api/polls', { json: body }),
+
+  votePoll: (id: string, choice: PollChoice): Promise<Poll> =>
+    call(PollSchema, 'POST', `/api/polls/${encodeURIComponent(id)}/vote`, { json: { choice } }),
+
+  approvePoll: (id: string): Promise<Poll> =>
+    call(PollSchema, 'POST', `/api/polls/${encodeURIComponent(id)}/approve`),
+
+  rejectPoll: (id: string, reason: string): Promise<Poll> =>
+    call(PollSchema, 'POST', `/api/polls/${encodeURIComponent(id)}/reject`, { json: { reason } }),
+
+  closePoll: (id: string): Promise<Poll> =>
+    call(PollSchema, 'POST', `/api/polls/${encodeURIComponent(id)}/close`),
+}
+
+// Every poll the caller may see (all pages), newest first.
+export async function listAllPolls(): Promise<Poll[]> {
+  const all: Poll[] = []
+  for (let offset = 0; ; offset += PAGE_LIMIT) {
+    const page = await api.listPolls({ limit: PAGE_LIMIT, offset })
+    all.push(...page)
+    if (page.length < PAGE_LIMIT) return all
+  }
 }
 
 // Every request (all pages), newest first. Used where a count or filter must
@@ -221,6 +270,18 @@ export async function listAllRequests(mine: boolean): Promise<ServiceRequest[]> 
   const all: ServiceRequest[] = []
   for (let offset = 0; ; offset += PAGE_LIMIT) {
     const page = await api.listRequests({ mine, limit: PAGE_LIMIT, offset })
+    all.push(...page)
+    if (page.length < PAGE_LIMIT) return all
+  }
+}
+
+// Every news post the caller may see (all pages), newest first (ITP-51).
+export async function listAllAnnouncements(
+  opts: { status?: AnnouncementStatus } = {},
+): Promise<Announcement[]> {
+  const all: Announcement[] = []
+  for (let offset = 0; ; offset += PAGE_LIMIT) {
+    const page = await api.listAnnouncements({ ...opts, limit: PAGE_LIMIT, offset })
     all.push(...page)
     if (page.length < PAGE_LIMIT) return all
   }

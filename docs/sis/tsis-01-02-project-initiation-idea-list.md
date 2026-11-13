@@ -25,7 +25,8 @@ request with a photo, a place and a short text. If ten people report the same li
 these reports into one request. Everyone sees the status: new, in work, or done.
 
 The company sends news and emergency alerts from one place, and it reaches every flat. The company
-can also start a vote and collect money for agreed work.
+can also start a vote and collect money for agreed work. Residents pay by Kaspi transfer to the
+company and upload the receipt; the app does not process payments.
 
 **Target audience.** Management companies of residential buildings in Kazakhstan pay for the
 product. Residents, owners, tenants and technicians use it.
@@ -85,7 +86,7 @@ residents want fast answers. So we also write how we will manage each expectatio
 | 1 | Official news channel, separate from chat, for daily news and planned work (water, power, gas) | News is lost in normal chat messages. People find out about outages too late |
 | 2 | Fault reporting with photo, owner and status | Stops ten copies of one problem. Shows progress |
 | 3 | Emergency alert to every flat | Gas, fire and water have no fast channel |
-| 4 | Collective decisions without a meeting: online voting and money collection for agreed work | Few people come to a real meeting. Cash collection has no visible total |
+| 4 | Collective decisions without a meeting: online voting and money collection for agreed work (Kaspi transfer plus receipt upload, no in-app payment) | Few people come to a real meeting. Cash collection has no visible total |
 | 5 | Problem history for each object (lift, pipe, entrance) | Nobody sees that one lift broke five times |
 | 6 | Access for owners who rent out flats | They pay, but get nothing today |
 
@@ -102,7 +103,7 @@ residents want fast answers. So we also write how we will manage each expectatio
 | Emergency alert | Fast message: gas, fire, water | People must not miss it | **Should** |
 | Complaint about a neighbour | Only the company sees it | No direct conflict | **Should** |
 | Online vote | Question, date and open result | Decide without a meeting | **Should** |
-| Money collection | Ask and track payment | No cash. Sum is visible | **Should** |
+| Money collection | Ask for payment. Residents pay by Kaspi transfer to the company and upload the receipt. No in-app payment processing | No cash. Sum is visible | **Should** |
 | Object statistics | How often each object breaks | Shows what to change | **Could** |
 | Owner access | Give access to a tenant, take it back | Owner stays informed | **Could** |
 

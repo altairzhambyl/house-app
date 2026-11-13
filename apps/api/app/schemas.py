@@ -5,7 +5,7 @@ from enum import Enum
 from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, StringConstraints, field_validator
+from pydantic import AwareDatetime, BaseModel, StringConstraints, field_validator
 
 
 # Trimmed, non-blank text - matches the `length(trim(...)) > 0` checks in the DB.
@@ -25,6 +25,8 @@ class RequestStatus(str, Enum):
     pending = "pending"
     in_progress = "in_progress"
     done = "done"
+    # Final; set only by the author through POST /api/requests/{id}/withdraw (ITP-53).
+    withdrawn = "withdrawn"
 
 
 class RequestCategory(str, Enum):
@@ -120,6 +122,14 @@ class RequestDetailOut(RequestOut):
 class StatusUpdate(BaseModel):
     status: RequestStatus
 
+    @field_validator("status")
+    @classmethod
+    def not_withdrawn(cls, value: RequestStatus) -> RequestStatus:
+        # Withdrawing is the author's action, not a manager's status change.
+        if value is RequestStatus.withdrawn:
+            raise ValueError("only the author can withdraw a request")
+        return value
+
 
 class PhotoType(str, Enum):
     jpeg = "image/jpeg"
@@ -149,6 +159,24 @@ class AnnouncementCreate(BaseModel):
     body: Annotated[str, _text(5000)]
 
 
+class AnnouncementStatus(str, Enum):
+    """Mirrors the check on public.announcements.status (ITP-51)."""
+
+    pending = "pending"  # a resident's post, waiting for a manager
+    published = "published"
+    rejected = "rejected"
+
+
+class AnnouncementReject(BaseModel):
+    # Optional; shown to the author. Blank means "no reason given".
+    reason: Annotated[str, _text(500)] | None = None
+
+    @field_validator("reason", mode="before")
+    @classmethod
+    def blank_reason_is_none(cls, value: object) -> object:
+        return None if isinstance(value, str) and not value.strip() else value
+
+
 class AnnouncementOut(BaseModel):
     id: UUID
     building_id: UUID
@@ -156,6 +184,14 @@ class AnnouncementOut(BaseModel):
     title: str
     body: str
     created_at: datetime
+    status: AnnouncementStatus
+    # Only on rejected posts; only the author and managers ever see those.
+    reject_reason: str | None
+    reviewed_at: datetime | None
+    # True for posts by the management company (a manager), false for residents.
+    is_official: bool
+    # Residents' posts are labelled by flat only, never by name.
+    author_flat_number: str | None
 
 
 class MessageCreate(BaseModel):
@@ -170,3 +206,61 @@ class MessageOut(BaseModel):
     role: Role
     body: str
     created_at: datetime
+
+
+# --- Polls (ITP-40, ITP-55) ---------------------------------------------------
+
+
+class PollStatus(str, Enum):
+    proposed = "proposed"
+    open = "open"
+    rejected = "rejected"
+    closed = "closed"
+
+
+class PollChoice(str, Enum):
+    for_ = "for"
+    against = "against"
+    abstain = "abstain"
+
+
+class PollCreate(BaseModel):
+    question: Annotated[str, _text(300)]
+    description: Annotated[str, _text(2000)] | None = None
+    # Must carry a UTC offset: a bare local time would be read differently per server.
+    ends_at: AwareDatetime
+
+    @field_validator("description", mode="before")
+    @classmethod
+    def blank_description_is_none(cls, value: object) -> object:
+        return None if isinstance(value, str) and not value.strip() else value
+
+
+class PollReject(BaseModel):
+    reason: Annotated[str, _text(500)]
+
+
+class PollVote(BaseModel):
+    choice: PollChoice
+
+
+class PollOut(BaseModel):
+    id: UUID
+    building_id: UUID
+    author_id: UUID
+    author_name: str
+    question: str
+    description: str | None
+    ends_at: datetime
+    # "closed" also when an open poll's ends_at has passed.
+    status: PollStatus
+    reject_reason: str | None
+    reviewed_at: datetime | None
+    created_at: datetime
+    votes_for: int
+    votes_against: int
+    votes_abstain: int
+    votes_total: int
+    # Active residents (role resident) of the building, i.e. who may vote.
+    eligible_voters: int
+    my_choice: PollChoice | None

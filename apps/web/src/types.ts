@@ -9,7 +9,8 @@ import { z } from 'zod'
 export const RoleSchema = z.enum(['resident', 'manager'])
 export type Role = z.infer<typeof RoleSchema>
 
-export const RequestStatusSchema = z.enum(['pending', 'in_progress', 'done'])
+// Mirrors the Postgres enum public.request_status. 'withdrawn' is final (ITP-53).
+export const RequestStatusSchema = z.enum(['pending', 'in_progress', 'done', 'withdrawn'])
 export type RequestStatus = z.infer<typeof RequestStatusSchema>
 
 // Mirrors the Postgres enum public.request_category.
@@ -87,6 +88,10 @@ export const ServiceRequestSchema = z.object({
 })
 export type ServiceRequest = z.infer<typeof ServiceRequestSchema>
 
+// ITP-51: a resident's post is 'pending' until a manager approves or rejects it.
+export const AnnouncementStatusSchema = z.enum(['pending', 'published', 'rejected'])
+export type AnnouncementStatus = z.infer<typeof AnnouncementStatusSchema>
+
 export const AnnouncementSchema = z.object({
   id: z.string(),
   building_id: z.string(),
@@ -94,6 +99,13 @@ export const AnnouncementSchema = z.object({
   title: z.string(),
   body: z.string(),
   created_at: z.string(),
+  status: AnnouncementStatusSchema,
+  // Only on rejected posts (seen by their author and managers).
+  reject_reason: z.string().nullable(),
+  reviewed_at: z.string().nullable(),
+  // True: from the management company. False: from a resident, labelled by flat only.
+  is_official: z.boolean(),
+  author_flat_number: z.string().nullable(),
 })
 export type Announcement = z.infer<typeof AnnouncementSchema>
 
@@ -132,3 +144,40 @@ export type View =
   | 'voting'
   | 'payments'
   | 'owner'
+
+// Polls (ITP-40, ITP-55). Mirrors schemas.PollOut / PollCreate.
+export const PollStatusSchema = z.enum(['proposed', 'open', 'rejected', 'closed'])
+export type PollStatus = z.infer<typeof PollStatusSchema>
+
+export const PollChoiceSchema = z.enum(['for', 'against', 'abstain'])
+export type PollChoice = z.infer<typeof PollChoiceSchema>
+
+export const PollSchema = z.object({
+  id: z.string(),
+  building_id: z.string(),
+  author_id: z.string(),
+  author_name: z.string(),
+  question: z.string(),
+  description: z.string().nullable(),
+  ends_at: z.string(),
+  // 'closed' also when an open poll's end date has passed.
+  status: PollStatusSchema,
+  reject_reason: z.string().nullable(),
+  reviewed_at: z.string().nullable(),
+  created_at: z.string(),
+  votes_for: z.number().int(),
+  votes_against: z.number().int(),
+  votes_abstain: z.number().int(),
+  votes_total: z.number().int(),
+  // Active residents of the building (who may vote).
+  eligible_voters: z.number().int(),
+  my_choice: PollChoiceSchema.nullable(),
+})
+export type Poll = z.infer<typeof PollSchema>
+
+export interface PollCreate {
+  question: string
+  description: string | null
+  /** ISO 8601 with offset */
+  ends_at: string
+}

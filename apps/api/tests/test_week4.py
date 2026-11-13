@@ -176,16 +176,22 @@ def test_direct_database_access_cannot_bypass_workflow(
     rest.close()
 
 
-def test_only_managers_post_news_and_news_is_per_building(client: TestClient, make_account) -> None:
+def test_manager_news_is_published_and_news_is_per_building(
+    client: TestClient, make_account
+) -> None:
     resident = make_account(BUILDING_A, FLAT_A_14B)
     manager = make_account(BUILDING_A, None, role="manager")
     outsider = make_account(BUILDING_B, FLAT_B_22C)
 
     news = {"title": "Water off", "body": "Tomorrow 09:00-14:00, pipe inspection."}
-    assert client.post("/api/announcements", headers=resident.headers, json=news).status_code == 403
+    # Since ITP-51 residents may post too, but only for review.
+    suggested = client.post("/api/announcements", headers=resident.headers, json=news)
+    assert suggested.status_code == 201
+    assert suggested.json()["status"] == "pending"
 
     posted = client.post("/api/announcements", headers=manager.headers, json=news)
     assert posted.status_code == 201
+    assert posted.json()["status"] == "published"
     news_id = posted.json()["id"]
 
     seen = {a["id"] for a in client.get("/api/announcements", headers=resident.headers).json()}

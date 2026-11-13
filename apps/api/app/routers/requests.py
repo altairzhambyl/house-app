@@ -10,6 +10,7 @@ from typing import Annotated, Any
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, HTTPException, Query, status
+from postgrest.exceptions import APIError
 from storage3.exceptions import StorageApiError
 
 from app.deps import CurrentManager, CurrentResident, SupabaseDep
@@ -42,6 +43,9 @@ COLUMNS = (
 )
 # Shown in the history when the account that changed the status was deleted.
 UNKNOWN_ACTOR = "Deleted account"
+# Raised by public.guard_request_status() when a status change breaks the
+# withdraw rules (ITP-53), e.g. a manager moving a withdrawn request.
+CHECK_VIOLATION = "23514"
 
 
 def _fields(row: dict[str, Any], photo_url: str | None) -> dict[str, Any]:
@@ -195,20 +199,59 @@ async def update_status(
     """Move a request through pending / in_progress / done. Managers of its building only.
 
     Setting the current status again is a no-op and adds no history entry.
+    A withdrawn request is final: changing it answers 409.
     """
     # One transaction in the DB: lock, compare, update, log the history entry.
-    response = await supabase.rpc(
-        "set_request_status",
-        {
-            "p_request_id": str(request_id),
-            "p_building_id": str(manager.building_id),
-            "p_status": body.status.value,
-            "p_actor_id": str(manager.id),
-        },
-    ).execute()
+    try:
+        response = await supabase.rpc(
+            "set_request_status",
+            {
+                "p_request_id": str(request_id),
+                "p_building_id": str(manager.building_id),
+                "p_status": body.status.value,
+                "p_actor_id": str(manager.id),
+            },
+        ).execute()
+    except APIError as exc:
+        if exc.code != CHECK_VIOLATION:
+            raise
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "The request was withdrawn; its status can no longer change"
+        ) from exc
     if response.data is not True:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Request not found")
     row = await _get_in_building(supabase, request_id, manager.building_id)
+    return await _detail(supabase, row)
+
+
+@router.post("/{request_id}/withdraw", dependencies=[rate_limited("request_withdraw")])
+async def withdraw_request(
+    request_id: UUID, supabase: SupabaseDep, resident: CurrentResident
+) -> RequestDetailOut:
+    """The author withdraws their own request while it is still pending (ITP-53).
+
+    Nothing is deleted: the status becomes `withdrawn`, the history gets an entry,
+    and the request stays in every list. Another resident's request, or one in
+    another building, is 404; a request that is no longer pending is 409.
+    """
+    # One transaction in the DB: lock, check author and status, update, log.
+    response = await supabase.rpc(
+        "withdraw_request",
+        {
+            "p_request_id": str(request_id),
+            "p_building_id": str(resident.building_id),
+            "p_author_id": str(resident.id),
+        },
+    ).execute()
+    if response.data == "not_found":
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Request not found")
+    if response.data == "not_pending":
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "Only a request that is still new can be withdrawn"
+        )
+    if response.data != "withdrawn":
+        raise RuntimeError(f"withdraw_request returned {response.data!r} for {request_id}")
+    row = await _get_in_building(supabase, request_id, resident.building_id)
     return await _detail(supabase, row)
 
 
