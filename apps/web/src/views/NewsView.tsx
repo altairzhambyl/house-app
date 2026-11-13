@@ -16,12 +16,18 @@ export function NewsView({ resident }: { resident: Resident }) {
   const t = useT(m)
   const isManager = resident.role === 'manager'
   const { state, reload, setData } = useApi(useCallback(() => listAllAnnouncements(), []))
+  // setData is a no-op unless the list is loaded; fetch again then, so a new post never looks lost.
+  const listReady = state.status === 'ready'
+  const posted = useCallback((a: Announcement) => {
+    if (listReady) setData(list => [a, ...list])
+    else reload()
+  }, [listReady, setData, reload])
   const onReviewed = useCallback((a: Announcement) => setData(list => replaceNews(list, a)), [setData])
 
   return (
     <div>
       <SectionHeader title={t('title')} sub={t('sub')} />
-      <ComposeNews isManager={isManager} onPosted={a => setData(list => [a, ...list])} />
+      <ComposeNews isManager={isManager} onPosted={posted} />
       <Loaded state={state} onRetry={reload} isEmpty={d => d.length === 0} empty={t('empty')}>
         {items => {
           const { review, feed } = splitNews(items, resident.role)

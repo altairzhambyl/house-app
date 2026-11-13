@@ -38,6 +38,7 @@ COLUMNS = (
     "reject_reason, reviewed_at, created_at, author:residents!polls_author_id_fkey(full_name)"
 )
 UNIQUE_VIOLATION = "23505"
+CHECK_VIOLATION = "23514"  # guard_poll_vote: closed or ended since we read it
 # Long enough for any building decision, short enough to catch a typo in the year.
 MAX_DURATION = timedelta(days=366)
 TIMESTAMP = TypeAdapter(datetime)
@@ -312,6 +313,10 @@ async def vote(
             .execute()
         )
     except APIError as exc:
+        if exc.code == CHECK_VIOLATION:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT, "This poll is not open for voting"
+            ) from exc
         if exc.code != UNIQUE_VIOLATION:
             raise
         raise HTTPException(status.HTTP_409_CONFLICT, "You have already voted") from exc

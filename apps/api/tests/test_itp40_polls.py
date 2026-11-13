@@ -286,6 +286,8 @@ def test_direct_database_access_follows_the_poll_rules(
     }
     # A resident cannot open a poll themselves or fill in the moderation fields.
     assert rest.post("/polls", json={**row, "status": "open"}).status_code in {401, 403}
+    # Proposals too go only through the API (and its rate limit).
+    assert rest.post("/polls", json={**row, "status": "proposed"}).status_code in {401, 403}
     assert rest.post("/polls", json={**row, "reject_reason": "x"}).status_code in {401, 403}
     # Someone else's proposal is invisible; a ballot is private.
     visible = rest.get("/polls", params={"select": "id"}).json()

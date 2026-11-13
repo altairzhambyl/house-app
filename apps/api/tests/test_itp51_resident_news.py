@@ -168,8 +168,9 @@ def test_direct_database_access_respects_news_review(
 
     author_rest, neighbour_rest = rest(author), rest(neighbour)
     row = {"building_id": BUILDING_A, "author_id": author.id, **NEWS}
-    # The column default is 'published', so a resident must ask for 'pending'.
-    for forged in ({}, {"status": "published"}, {"status": "rejected"}):
+    # Residents have no direct insert at all: suggestions go through the API and
+    # its rate limit, even a well-formed 'pending' row.
+    for forged in ({}, {"status": "published"}, {"status": "rejected"}, {"status": "pending"}):
         assert author_rest.post("/announcements", json={**row, **forged}).status_code == 403
     impersonation = {**row, "author_id": neighbour.id, "status": "pending"}
     assert author_rest.post("/announcements", json=impersonation).status_code == 403

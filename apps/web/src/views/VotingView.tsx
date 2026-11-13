@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { Badge, Card, Empty, ErrorNote, Loaded, SectionHeader, inputCls, labelCls } from '../components/ui'
 import { useLocale, useT } from '../i18n'
-import { api, listAllPolls } from '../lib/api'
+import { ApiError, api, listAllPolls } from '../lib/api'
 import type { Tone } from '../lib/format'
 import { endOfLocalDay, groupPolls, localDay } from '../lib/polls'
 import { useApi } from '../lib/useApi'
@@ -59,21 +59,22 @@ export function VotingView({ resident }: { resident: Resident }) {
       </p>
       <ProposePoll isManager={isManager} onCreated={created} />
       <Loaded state={state} onRetry={reload}>
-        {polls => <PollSections polls={polls} resident={resident} onChanged={upsert} />}
+        {polls => <PollSections polls={polls} resident={resident} onChanged={upsert} onStale={reload} />}
       </Loaded>
     </div>
   )
 }
 
-function PollSections({ polls, resident, onChanged }: {
+function PollSections({ polls, resident, onChanged, onStale }: {
   polls: Poll[]
   resident: Resident
   onChanged: (poll: Poll) => void
+  onStale: () => void
 }) {
   const t = useT(m)
   const groups = useMemo(() => groupPolls(polls, resident), [polls, resident])
   const isManager = resident.role === 'manager'
-  const card = (p: Poll) => <PollCard key={p.id} poll={p} resident={resident} onChanged={onChanged} />
+  const card = (p: Poll) => <PollCard key={p.id} poll={p} resident={resident} onChanged={onChanged} onStale={onStale} />
 
   return (
     <div className="space-y-8">
@@ -102,10 +103,12 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   )
 }
 
-function PollCard({ poll, resident, onChanged }: {
+function PollCard({ poll, resident, onChanged, onStale }: {
   poll: Poll
   resident: Resident
   onChanged: (poll: Poll) => void
+  /** Refetch the list: a 409 means this card is out of date (voted in another tab, closed, moderated). */
+  onStale: () => void
 }) {
   const t = useT(m)
   const { formatDate } = useLocale()
@@ -129,6 +132,7 @@ function PollCard({ poll, resident, onChanged }: {
       onChanged(await action())
     } catch (err) {
       setError(err)
+      if (err instanceof ApiError && err.status === 409) onStale()
     } finally {
       setBusy(false)
     }

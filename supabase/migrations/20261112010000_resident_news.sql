@@ -49,13 +49,11 @@ create policy "managers publish news" on public.announcements
     and reviewed_at is null
   );
 
-create policy "residents submit news for review" on public.announcements
-  for insert to authenticated with check (
-    not public.is_manager()
-    and author_id = auth.uid()
-    and building_id = public.current_building_id()
-    and status = 'pending'
-    and reject_reason is null
-    and reviewed_by is null
-    and reviewed_at is null
-  );
+-- Residents have no insert policy: their suggestions come only through the API,
+-- which applies the per-user "resident_news" rate limit. A direct PostgREST
+-- insert would skip that limit and could flood the managers' queue.
+
+-- Clients may not choose id, created_at or the moderation fields: a post dated
+-- in the future would pin itself to the top of the feed.
+revoke insert on public.announcements from authenticated, anon;
+grant insert (building_id, author_id, title, body, status) on public.announcements to authenticated;

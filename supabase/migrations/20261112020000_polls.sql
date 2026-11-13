@@ -86,14 +86,16 @@ create policy "polls of own building" on public.polls
     and (status in ('open', 'closed') or author_id = auth.uid() or public.is_manager())
   );
 
--- Residents propose, managers open directly. Moderation fields are never set by
--- the author, and there is no update policy: approve / reject / close go through
--- the API, which checks the transition.
-create policy "propose polls in own building" on public.polls
+-- Managers may open a poll directly. Residents have no insert policy: proposals
+-- come only through the API, which applies the per-user "poll_create" rate limit
+-- (a direct insert would skip it and could flood the moderation queue). There is
+-- no update policy: approve / reject / close go through the API.
+create policy "managers open polls in own building" on public.polls
   for insert to authenticated with check (
-    author_id = auth.uid()
+    public.is_manager()
+    and author_id = auth.uid()
     and building_id = public.current_building_id()
-    and status = case when public.is_manager() then 'open' else 'proposed' end
+    and status = 'open'
     and reject_reason is null
     and reviewed_by is null
     and reviewed_at is null
@@ -124,3 +126,38 @@ create policy "residents vote on open polls of own building" on public.poll_vote
 
 revoke insert, update, delete on public.poll_votes from authenticated, anon;
 grant insert (poll_id, building_id, resident_id, choice) on public.poll_votes to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Votes only on a poll that is open right now, checked atomically.
+-- ---------------------------------------------------------------------------
+-- The API inserts with the service role, which bypasses the RLS check above, and
+-- reads the poll in a separate statement first. This trigger locks the poll row
+-- (FOR SHARE blocks a concurrent close until the vote commits, and vice versa),
+-- so a vote can never land after a close or after ends_at.
+-- SECURITY DEFINER because FOR SHARE needs UPDATE privilege on polls, which
+-- authenticated users do not have; the function only reads one row.
+create function public.guard_poll_vote() returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  perform 1 from public.polls p
+  where p.id = new.poll_id
+    and p.building_id = new.building_id
+    and p.status = 'open'
+    and p.ends_at > now()
+  for share;
+  if not found then
+    raise exception 'poll % is not open for voting', new.poll_id
+      using errcode = 'check_violation';
+  end if;
+  return new;
+end;
+$$;
+
+create trigger poll_votes_guard_open
+  before insert on public.poll_votes
+  for each row execute function public.guard_poll_vote();
+
+revoke all on function public.guard_poll_vote() from public, anon, authenticated;
