@@ -36,6 +36,7 @@ LIMITS: dict[str, Limit] = {
     "message": Limit(30, 60),
     "announcement": Limit(20, 60 * 60),
     "flat_admin": Limit(60, 60 * 60),  # rotate codes, remove residents
+    "request_withdraw": Limit(20, 60 * 60),  # ITP-53
 }
 
 

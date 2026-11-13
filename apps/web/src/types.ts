@@ -9,7 +9,8 @@ import { z } from 'zod'
 export const RoleSchema = z.enum(['resident', 'manager'])
 export type Role = z.infer<typeof RoleSchema>
 
-export const RequestStatusSchema = z.enum(['pending', 'in_progress', 'done'])
+// Mirrors the Postgres enum public.request_status. 'withdrawn' is final (ITP-53).
+export const RequestStatusSchema = z.enum(['pending', 'in_progress', 'done', 'withdrawn'])
 export type RequestStatus = z.infer<typeof RequestStatusSchema>
 
 // Mirrors the Postgres enum public.request_category.

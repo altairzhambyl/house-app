@@ -11,9 +11,9 @@ import {
 import type { RequestCategory, RequestStatus } from '../types'
 
 export const statusMessages = defineMessages({
-  ru: { pending: 'Новая', in_progress: 'В работе', done: 'Выполнена' },
-  kk: { pending: 'Жаңа', in_progress: 'Орындалуда', done: 'Орындалды' },
-  en: { pending: 'New', in_progress: 'In progress', done: 'Done' },
+  ru: { pending: 'Новая', in_progress: 'В работе', done: 'Выполнена', withdrawn: 'Отозвана' },
+  kk: { pending: 'Жаңа', in_progress: 'Орындалуда', done: 'Орындалды', withdrawn: 'Кері қайтарылды' },
+  en: { pending: 'New', in_progress: 'In progress', done: 'Done', withdrawn: 'Withdrawn' },
 })
 
 export const categoryMessages = defineMessages({
@@ -58,9 +58,43 @@ export const STATUS_TONE: Record<RequestStatus, Tone> = {
   pending: 'amber',
   in_progress: 'blue',
   done: 'green',
+  withdrawn: 'gray',
 }
 
-export const STATUS_ORDER: RequestStatus[] = ['pending', 'in_progress', 'done']
+/** Every request status, in display order. */
+export const ALL_STATUSES: readonly RequestStatus[] = ['pending', 'in_progress', 'done', 'withdrawn']
+
+/** Statuses a manager can set; 'withdrawn' is the author's action only (ITP-53). */
+export type ManagerStatus = Exclude<RequestStatus, 'withdrawn'>
+
+/** The normal workflow, as the manager moves a request through it. */
+export const STATUS_ORDER: ManagerStatus[] = ['pending', 'in_progress', 'done']
+
+/** Still waiting for the УК: counted as open on the dashboard. */
+export function isOpenStatus(status: RequestStatus): boolean {
+  switch (status) {
+    case 'pending':
+    case 'in_progress':
+      return true
+    case 'done':
+    case 'withdrawn':
+      return false
+    default: {
+      const unhandled: never = status
+      throw new Error(`Unknown request status ${String(unhandled)}`)
+    }
+  }
+}
+
+/** Steps of the status timeline: a withdrawn request ends right after 'pending'. */
+export function statusSteps(status: RequestStatus): readonly RequestStatus[] {
+  return status === 'withdrawn' ? ['pending', 'withdrawn'] : STATUS_ORDER
+}
+
+/** Only the author, and only while the request is still new (ITP-53). */
+export function canWithdraw(request: { status: RequestStatus; author_id: string }, residentId: string): boolean {
+  return request.status === 'pending' && request.author_id === residentId
+}
 
 export const CATEGORY_ORDER: RequestCategory[] = ['plumbing', 'electrical', 'locksmith', 'sanitation', 'cleaning', 'other']
 
@@ -72,7 +106,7 @@ function liveLabels<K extends string>(keys: readonly K[], label: (k: K) => strin
   return target
 }
 /** @deprecated use `useLocale().statusLabel(status)` */
-export const STATUS_LABELS: Record<RequestStatus, string> = liveLabels(STATUS_ORDER, s => statusLabel(s))
+export const STATUS_LABELS: Record<RequestStatus, string> = liveLabels(ALL_STATUSES, s => statusLabel(s))
 /** @deprecated use `useLocale().categoryLabel(category)` */
 export const CATEGORY_LABELS: Record<RequestCategory, string> = liveLabels(CATEGORY_ORDER, c => categoryLabel(c))
 
