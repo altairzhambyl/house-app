@@ -117,7 +117,11 @@ export type ComplaintStatus = 'review' | 'resolved' | 'closed'
 
 export interface MockComplaint {
   id: number
-  /** Flat numbers are identifiers, not translated. */
+  /**
+   * The sender's flat. Only the manager may see it; the flat the complaint is
+   * about never does, and the resident view shows only the target (ITP-54).
+   * Flat numbers are identifiers, not translated.
+   */
   fromFlat: string
   /** null = a common area, not a flat */
   aboutFlat: string | null
@@ -127,17 +131,18 @@ export interface MockComplaint {
   date: string
 }
 
+// The signed-in resident's own complaints, so every row has the same sender.
 export const MOCK_COMPLAINTS: MockComplaint[] = [
   {
     id: 1, fromFlat: '12A', aboutFlat: '13A', status: 'review', date: '2026-09-26',
     subject: { ru: 'Шум после 23:00', kk: '23:00-ден кейінгі шу', en: 'Noise after 23:00' },
   },
   {
-    id: 2, fromFlat: '8C', aboutFlat: '8B', status: 'resolved', date: '2026-09-19',
+    id: 2, fromFlat: '12A', aboutFlat: '12B', status: 'resolved', date: '2026-09-19',
     subject: { ru: 'Сигаретный дым в общем коридоре', kk: 'Ортақ дәліздегі темекі түтіні', en: 'Cigarette smoke in the shared hallway' },
   },
   {
-    id: 3, fromFlat: '3B', aboutFlat: null, status: 'closed', date: '2026-09-12',
+    id: 3, fromFlat: '12A', aboutFlat: null, status: 'closed', date: '2026-09-12',
     subject: { ru: 'Собака без поводка в лифте', kk: 'Лифтте қарғыбаусыз ит', en: 'Dog off its lead in the lift' },
   },
 ]
@@ -213,12 +218,19 @@ export const MOCK_PAYMENTS: MockPayment[] = [
 ]
 
 export const MOCK_PAYMENT_SUMMARY = {
-  flat: '14B',
   dueAmount: 19000,
   dueMonth: '2026-10',
   paidThisYear: 214500,
   paidMonths: 9,
   debt: 0,
+}
+
+// Payments are a Kaspi transfer to the manager's phone plus a receipt upload;
+// the app processes no payments (team decision, 07.10, ITP-42).
+// Placeholder number, not a real account.
+export const MOCK_KASPI = {
+  phone: '+7 700 000 00 00',
+  recipient: { ru: 'Управляющая компания (демо)', kk: 'Басқарушы компания (демо)', en: 'Management company (demo)' } satisfies Localized,
 }
 
 // ---------------------------------------------------------------------------

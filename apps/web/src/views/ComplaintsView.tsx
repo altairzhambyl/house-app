@@ -3,18 +3,30 @@ import { Badge, Card, SectionHeader } from '../components/ui'
 import { useLocale, useLocalize, useT } from '../i18n'
 import type { Tone } from '../lib/format'
 import { MOCK_COMPLAINTS, type ComplaintStatus } from '../mock/data'
+import type { Resident } from '../types'
 import { m } from './ComplaintsView.i18n'
 
 const STATUS_TONE: Record<ComplaintStatus, Tone> = { review: 'amber', resolved: 'green', closed: 'gray' }
 
+// Flat numbers are typed by hand, often with Cyrillic letters ('13А' vs '13A').
+function sameFlat(a: string, b: string): boolean {
+  const norm = (s: string) => s.replace(/\s/g, '').toUpperCase()
+    .replace(/А/g, 'A').replace(/[БВ]/g, 'B').replace(/С/g, 'C').replace(/Е/g, 'E')
+  return norm(a) === norm(b)
+}
+
 // complaints
-export function ComplaintsView() {
+export function ComplaintsView({ resident }: { resident: Resident }) {
   const t = useT(m)
   const L = useLocalize()
   const { formatDate } = useLocale()
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ about: '', subject: '', detail: '' })
   const [submitted, setSubmitted] = useState(false)
+  // The mock history belongs to one demo sender. A resident must never see a
+  // complaint about their own flat presented as one they filed (ITP-54).
+  const own = resident.flat_number
+  const history = own === null ? MOCK_COMPLAINTS : MOCK_COMPLAINTS.filter(c => c.aboutFlat === null || !sameFlat(c.aboutFlat, own))
 
   return (
     <div>
@@ -58,14 +70,14 @@ export function ComplaintsView() {
         </Card>
       )}
       {submitted && (
-        <div role="status" className="bg-emerald-50 border border-emerald-200 rounded-md p-4 mb-5 text-sm text-emerald-800">
+        <div role="status" className="bg-amber-50 border border-amber-200 rounded-md p-4 mb-5 text-sm text-amber-900">
           {t('accepted')}
         </div>
       )}
 
       <h3 className="font-semibold text-[#2C4A1A] mb-3 text-sm">{t('history')}</h3>
       <div className="space-y-2">
-        {MOCK_COMPLAINTS.map(c => (
+        {history.map(c => (
           <Card key={c.id} className="p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -75,9 +87,8 @@ export function ComplaintsView() {
                 </div>
                 <p className="text-sm font-medium text-[#1E2A0E]">{L(c.subject)}</p>
                 <p className="text-xs text-[#697050] mt-0.5">
-                  {c.aboutFlat === null
-                    ? t('fromToCommon', { from: c.fromFlat })
-                    : t('fromTo', { from: c.fromFlat, about: c.aboutFlat })}
+                  {/* Only the target: the sender's flat is for the manager's eyes (ITP-54). */}
+                  {c.aboutFlat === null ? t('aboutCommon') : t('aboutFlatTarget', { about: c.aboutFlat })}
                 </p>
               </div>
             </div>
