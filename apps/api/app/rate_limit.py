@@ -37,6 +37,9 @@ LIMITS: dict[str, Limit] = {
     "announcement": Limit(20, 60 * 60),
     "flat_admin": Limit(60, 60 * 60),  # rotate codes, remove residents
     "request_withdraw": Limit(20, 60 * 60),  # ITP-53
+    # ITP-51: on top of "announcement" - each one lands in the managers' queue.
+    "resident_news": Limit(5, 60 * 60),
+    "news_moderation": Limit(60, 60 * 60),  # approve / reject resident news
 }
 
 
@@ -93,3 +96,18 @@ def rate_limited(action: str, *, ip_action: str | None = None) -> object:
                 )
 
     return Depends(dependency)
+
+
+async def enforce_limit(supabase: SupabaseDep, action: str, user_id: object) -> None:
+    """Count one call against the user from inside a handler.
+
+    For limits that apply only to some callers (e.g. residents, not managers),
+    which a route-level dependency cannot express.
+    """
+    limit = LIMITS[action]
+    if not await _allowed(supabase, f"{action}:user:{user_id}", limit):
+        raise HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            "Too many requests, try again later",
+            headers={"Retry-After": str(retry_after(limit))},
+        )

@@ -88,6 +88,10 @@ export const ServiceRequestSchema = z.object({
 })
 export type ServiceRequest = z.infer<typeof ServiceRequestSchema>
 
+// ITP-51: a resident's post is 'pending' until a manager approves or rejects it.
+export const AnnouncementStatusSchema = z.enum(['pending', 'published', 'rejected'])
+export type AnnouncementStatus = z.infer<typeof AnnouncementStatusSchema>
+
 export const AnnouncementSchema = z.object({
   id: z.string(),
   building_id: z.string(),
@@ -95,6 +99,13 @@ export const AnnouncementSchema = z.object({
   title: z.string(),
   body: z.string(),
   created_at: z.string(),
+  status: AnnouncementStatusSchema,
+  // Only on rejected posts (seen by their author and managers).
+  reject_reason: z.string().nullable(),
+  reviewed_at: z.string().nullable(),
+  // True: from the management company. False: from a resident, labelled by flat only.
+  is_official: z.boolean(),
+  author_flat_number: z.string().nullable(),
 })
 export type Announcement = z.infer<typeof AnnouncementSchema>
 
